@@ -9,6 +9,9 @@
       "libtool"
       "syncthing"
       "helm" # for kp kubernetes,x
+      "yt-dlp"
+      # "pharo"
+      "gdrive"
 
 
     ];
@@ -57,16 +60,25 @@
       #    "chromedriver"
           "amethyst"
       # "karabiner-elements"
+      "obs"
       "spaceid"
       "slack"
       "discord"
       "1password"
       "1password-cli"
       "emacs-mac"
+      "nordlayer"
       "mongodb-compass"
+      "audacity"
+      "google-drive"
+      "pharo-launcher"
+      "utm"
+
     ];
     nixPkgs = with pkgs; [
+      mpv
       w3m
+      html-tidy
       arp-scan
       ripgrep
       awscli2
@@ -96,9 +108,12 @@
       tldr
       tree
       wget
-      youtube-dl
       mu
       # syncthing
+      graphviz
+      tdlib
+      matterbridge
+      gvfs
     ];
     secrets = "/Users/samikallinen/src/system-config/secrets.sh";
   in
@@ -142,13 +157,17 @@
           #          "homebrew/cask"
           #          "homebrew/cask-drivers"
           "railwaycat/emacsmacport"
+          "pharo-project/pharo"
           "koekeishiya/formulae"
         ];
         brews = brewPkgs;
         casks = brewCasks;
         masApps = {
+          # search for ids with commandline `mas search "app name"
           # Xcode = 497799835;
           "1Password for Safari" = 1569813296;
+          "GarageBand" = 682658836;
+         # "Turtle Beach Audio Hub"=  948410748; Redownload issue with Mac App Store
         };
       };
       # here go the darwin preferences and config items
@@ -173,6 +192,8 @@
       ];
       services = {
         nix-daemon.enable = true;
+        # matterbridge.enable = true;
+        # matterbridge.configPath = "/Users/samikallinen/src/system-config/";
         # syncthing = {
         #   enable = true;
         #   user = "sakalli";
@@ -234,7 +255,7 @@
       #        };
       #      };
 
-      services.skhd = {
+      services. skhd = {
         enable = true;
         skhdConfig = builtins.readFile ./skhdrc;
       };
