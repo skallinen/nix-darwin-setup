@@ -11,7 +11,9 @@
       "helm" # for kp kubernetes,x
       "yt-dlp"
       # "pharo"
-      "gdrive"
+      # "gdrive"
+      "mpv"
+      "ollama"
 
 
     ];
@@ -60,6 +62,7 @@
       #    "chromedriver"
           "amethyst"
       # "karabiner-elements"
+      "krita"
       "obs"
       "spaceid"
       "slack"
@@ -76,7 +79,9 @@
 
     ];
     nixPkgs = with pkgs; [
-      mpv
+      #ollama
+      #mpv
+      tdlib
       w3m
       html-tidy
       arp-scan
@@ -276,6 +281,7 @@
           # Don't change this when you change package input. Leave it alone.
           home.stateVersion = "22.11";
           # specify my home-manager configs
+          home.homeDirectory = pkgs.lib.mkForce "/Users/samikallinen";
           home.packages = nixPkgs;
           home.sessionVariables = {
             PAGER = "less";

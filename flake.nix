@@ -3,9 +3,9 @@
   inputs = {
     # Where we get most of our software. Giant mono repo with recipes
     # called derivations that say how to build software.
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11"; # nixos-22.11
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05"; # nixos-22.11
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    home-manager.url = "github:nix-community/home-manager/release-22.11";
+    home-manager.url = "github:nix-community/home-manager/release-23.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     # Controls system level software and settings including fonts
