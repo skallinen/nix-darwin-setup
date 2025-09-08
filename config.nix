@@ -65,6 +65,7 @@
       "aerospace"
       "inkscape"
       "claude"
+      "docker"
 
 
     ];
