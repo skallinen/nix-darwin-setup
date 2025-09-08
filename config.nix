@@ -1,24 +1,14 @@
 ({pkgs, ...}:
   let
     brewPkgs = [
-      #    "fileicon"
-      #    "magic-wormhole"
-      #    "libvirt"
-      #    "virt-manager"
-      #    "virt-viewer"
       "sox"
       "libtool"
       "syncthing"
-      "helm" # for kp kubernetes,x
       "yt-dlp"
-      # "pharo"
-      # "gdrive"
       "mpv"
       "ollama"
       "poppler"
       "node"
-      # "cmdstan"
-      # 
       "glib"
       "mu"
       "pkg-config"
@@ -50,52 +40,13 @@
       "vlc"
       "supercollider"
       "blackhole-2ch"
-      # "emacs-mac"
-      #    "ableton-live-suite"
-      #    "audacity"
-      #    "bluesnooze"
       "caffeine"
       "calibre"
-      #    "crossover"
-      #    "discord"
       "dropbox"
-      #    "firefox"
-      #    "fl-studio"
       "google-chrome"
       "firefox"
-      #    "iina"
-      #    "inkscape"
-      #    "keepassxc"
-      #    "kitty"
-      #    "krita"
-      #    "launchcontrol"
-      #    "little-snitch"
-      #    "loopback"
-      #    "lunar"
-      #    "mailspring"
-      #    "microsoft-outlook"
-      #    "native-access"1
-      #    "obsidian"
-      #    "plugdata"
-      #    "rectangle"
-      #    "secretive"
-      #    "skype"
-      #    "slack"
-      #    "splice"
-      #    "spotify"
-      #    "stats"
-      #   "steam"
       "telegram"
-      #    "vcv-rack"
-      #    "visual-studio-code"
-      #    "vlc"
-      #    "wireshark"
-      #    "xournal-plus-plus"
-      #
-     "zoom"
-      #"chromedriver"
-      # "amethyst"
-      # "karabiner-elements"
+      "zoom"
       "krita"
       "signal"
       "obs"
@@ -109,7 +60,6 @@
       "audacity"
       "google-drive"
       "pharo-launcher"
-#      "utm"
       "opencpn"
       "meshlab"
       "aerospace"
@@ -119,12 +69,7 @@
 
     ];
     nixPkgs = with pkgs; [
-      #ollama
-      #mpv
       isync
-      #meson
-      #pkg-config
-      #      mu
       pandoc
       cmdstan
       mob
@@ -136,7 +81,6 @@
       ripgrep
       awscli2
       bat
-      #_      clang
       coreutils
       curl
       diff-so-fancy
@@ -150,7 +94,6 @@
       pngpaste
       jc
       jq
-      # lorri
       m-cli
       nmap
       python3
@@ -163,7 +106,6 @@
       tree
       wget
       mu
-      # syncthing
       graphviz
       tdlib
       matterbridge
@@ -213,9 +155,6 @@
           cleanup = "zap";
         };
         taps = [
-          #          "homebrew/core"
-          #          "homebrew/cask"
-          #          "homebrew/cask-drivers"
           "railwaycat/emacsmacport"
           "pharo-project/pharo"
           "koekeishiya/formulae"
@@ -253,19 +192,6 @@
           '';
       system.keyboard.enableKeyMapping = true;
       system.keyboard.remapCapsLockToEscape = true;
-      # Replace this:
-      # fonts.fontDir.enable = true; # DANGER
-      # fonts.fonts = with pkgs; [
-      #   fira-code
-      #   font-awesome
-      #   inconsolata
-      #   nerdfonts
-      #   recursive
-      #   roboto
-      #   roboto-mono
-      # ];
-
-      # With this:
       fonts.packages = with pkgs; [
         fira-code
         font-awesome
@@ -277,74 +203,7 @@
       ];
       services = {
         nix-daemon.enable = true;
-        # matterbridge.enable = true;
-        # matterbridge.configPath = "/Users/samikallinen/src/system-config/";
-        # syncthing = {
-        #   enable = true;
-        #   user = "sakalli";
-        #   dataDir = "/Users/sakalli/Documents";    # Default folder for new synced folders
-        #   configDir = "/Users/sakalli/.config/syncthing";   # Folder for Syncthing's settings and keys
-        # };
       };
-#      services.karabiner-elements.enable = true;
-  #     services.yabai.enable = true;
-  #     services.yabai.enableScriptingAddition = true;
-  #     services.yabai.config = {
-  #       layout       = "bsp";
-  #       auto_balance = "on";
-  #       window_placement    = "second_child";
-
-  #       # window border
-  #       window_border = "on";
-  #       window_border_width = 2;
-  #       active_window_border_color = "0xff5c7e81";
-  #       normal_window_border_color = "0xff505050";
-  #       insert_window_border_color = "0xffd75f5f";
-
-  #       # window paddixg
-  #       top_padding         = 5;
-  #       bottom_padding      = 5;
-  #       left_padding        = 5;
-  #       right_padding       = 5;
-  #       window_gap          = 5;
-  #       window_opacity      = "off";
-
-  #       # mouse setting
-  #       focus_follows_mouse = "autoraise";
-  #       mouse_follows_focus = "on";
-  #       mouse_modifier      = "alt";
-  #       mouse_action1       = "move";    # left click + drag
-  #       mouse_action2       = "resize";  # righ click + drag
-  #       mouse_drop_action   = "swap";
-  #     };
-  #     services.yabai.extraConfig = ''
-  #   yabai -m rule --add app='System Settings' manage=off
-  # '';
-           # services.yabai = {
-           #   enable = true;
-           #   enableScriptingAddition = true;
-           #   package = pkgs.yabai;
-           #   config = {
-           #     focus_follows_mouse = "off";
-           #     mouse_follows_focus = "off";
-           #     window_placement = "second_child";
-           #     window_opacity = "on";
-           #     active_window_opacity = 1.0;
-           #     normal_window_opacity = 0.9;
-           #     top_padding = 3;
-           #     bottom_padding = 3;
-           #     left_padding = 3;
-           #     right_padding = 3;
-           #     window_gap = 3;
-           #     layout = "bsp";
-           #   };
-           # };
-
-      # services. skhd = {
-      #   enable = true;
-      #   #skhdConfig = builtins.readFile /Users/samikallinen/.config/skhd/skhdrc;
-      # };
-
       system.defaults.finder.AppleShowAllExtensions = true;
       system.defaults.finder._FXShowPosixPathInTitle = true;
       system.defaults.dock.autohide = true;
