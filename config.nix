@@ -172,7 +172,7 @@
       clojure
 
     ];
-    secrets = "/Users/samikallinen/src/system-config/secrets.sh";
+
   in
     {
       networking.hostName = "Samis-MacBook-Air";
@@ -193,7 +193,7 @@
             user.agents = {
               obsidianBackup = {
                 script = ''
-          # source ${secrets}
+
         '';
                 serviceConfig = (runEvery 86400) // { RunAtLoad = true; UserName = "samikallinen"; StandardOutPath = "/Users/samikallinen/backstdout.log"; StandardErrorPath = "/Users/samikallinen/backstderr.log"; };
               };
