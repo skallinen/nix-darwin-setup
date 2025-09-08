@@ -21,13 +21,24 @@
     home-manager,
     ...
   } @ inputs: {
-    darwinConfigurations.Samis-MacBook-Air = darwin.lib.darwinSystem {
-      system = "aarch64-darwin";
-      pkgs = import nixpkgs {system = "aarch64-darwin";};
-      modules = [
-        home-manager.darwinModules.home-manager
-        ./config.nix
-      ];
+    darwinConfigurations = {
+      Samis-MacBook-Air = darwin.lib.darwinSystem {
+        system = "aarch64-darwin";
+        pkgs = import nixpkgs { system = "aarch64-darwin"; };
+        modules = [
+          home-manager.darwinModules.home-manager
+          ./config.nix
+        ];
+      };
+      Gmtk-MacBook-Pro = darwin.lib.darwinSystem {
+        system = "aarch64-darwin";
+        pkgs = import nixpkgs { system = "aarch64-darwin"; };
+        modules = [
+          home-manager.darwinModules.home-manager
+          ./config.nix
+          ({ lib, ... }: { networking.hostName = lib.mkForce "Gmtk-MacBook-Pro"; })
+        ];
+      };
     };
   };
 }
