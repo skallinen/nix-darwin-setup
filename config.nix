@@ -20,8 +20,7 @@
       "librsvg"
       "python-setuptools"
       "pkg-config"
-      # following needed to install pdf-tools on macos
-      "poppler"
+      "poppler"         # for PDF tools
       "autoconf"
       "automake"
       "zlib"
@@ -31,8 +30,6 @@
       "isl"
       "mpfr"
       "libmpc"
-      # "d12frosted/emacs-plus/emacs-plus@30" 
-
     ];
     brewCasks = [
       "pdf-pals"
@@ -65,9 +62,7 @@
       "aerospace"
       "inkscape"
       "claude"
-      "docker"
-
-
+      "docker-desktop"          # Docker Desktop
     ];
     nixPkgs = with pkgs; [
       isync
@@ -113,151 +108,160 @@
       gvfs
       graphviz
       clojure
+    ];
+  in
+  {
+    networking.hostName = "Samis-MacBook-Air";
 
+    launchd =
+      let
+        runEvery = StartInterval: {
+          inherit StartInterval;
+          Nice = 5;
+          LowPriorityIO = true;
+          AbandonProcessGroup = true;
+        };
+        runCommand = command: {
+          inherit command;
+          serviceConfig.RunAtLoad = true;
+          serviceConfig.KeepAlive = true;
+        };
+      in {
+        user.agents = {
+        };
+      };
+
+    homebrew = {
+      enable = true;
+      extraConfig = ''
+        brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets"]
+      '';
+      global.brewfile = true;
+      brewPrefix = "/opt/homebrew/bin";
+      onActivation = {
+        autoUpdate = true;
+        upgrade = true;
+        cleanup = "zap";
+      };
+      taps = [
+        "railwaycat/emacsmacport"
+        "pharo-project/pharo"
+        "koekeishiya/formulae"
+        "brewsci/homebrew-science"
+        "nikitabobko/tap"
+        "d12frosted/emacs-plus"
+      ];
+      brews = brewPkgs;
+      casks = brewCasks;
+      masApps = {
+        "GarageBand" = 682658836;
+      };
+    };
+
+    programs.zsh = {
+      enable = true;
+      enableCompletion = true;
+    };
+
+    users.users.samikallinen.shell = pkgs.zsh;
+    users.users.samikallinen.home = "/Users/samikallinen";
+
+    nix.extraOptions = ''
+      experimental-features = nix-command flakes
+    '';
+
+    system.keyboard.enableKeyMapping = true;
+    system.keyboard.remapCapsLockToEscape = true;
+
+    fonts.packages = with pkgs; [
+      fira-code
+      font-awesome
+      inconsolata
+      nerdfonts
+      recursive
+      roboto
+      roboto-mono
     ];
 
-  in
-    {
-      networking.hostName = "Samis-MacBook-Air";
-      launchd =
-        let
-          runEvery = StartInterval: {
-            inherit StartInterval;
-            Nice = 5;
-            LowPriorityIO = true;
-            AbandonProcessGroup = true;
-          };
-          runCommand = command: {
-            inherit command;
-            serviceConfig.RunAtLoad = true;
-            serviceConfig.KeepAlive = true;
-          }; in {
+    services = {
+      nix-daemon.enable = true;
+    };
 
-            user.agents = {
-              obsidianBackup = {
-                script = ''
+    system.defaults.finder.AppleShowAllExtensions = true;
+    system.defaults.finder._FXShowPosixPathInTitle = true;
+    system.defaults.dock.autohide = true;
+    system.defaults.NSGlobalDomain.AppleShowAllExtensions = true;
+    system.defaults.NSGlobalDomain.InitialKeyRepeat = 14;
+    system.defaults.NSGlobalDomain.KeyRepeat = 1;
+    system.defaults.spaces.spans-displays = false;
 
-        '';
-                serviceConfig = (runEvery 86400) // { RunAtLoad = true; UserName = "samikallinen"; StandardOutPath = "/Users/samikallinen/backstdout.log"; StandardErrorPath = "/Users/samikallinen/backstderr.log"; };
-              };
+    system.stateVersion = 4; # do not change
+
+    home-manager = {
+      useGlobalPkgs = true;
+      useUserPackages = true;
+      backupFileExtension = "backup";
+      users.samikallinen = { pkgs, lib, ... }: {
+        home.stateVersion = "22.11"; # do not change
+
+        home.homeDirectory = pkgs.lib.mkForce "/Users/samikallinen";
+
+        home.file."Library/Application Support/Claude/claude_desktop_config.json".text = builtins.toJSON {
+          mcpServers = {
+            clojure-mcp = {
+              command = "bash";
+              args = [
+                "-c"
+                "cd /Users/samikallinen/projects/clojure-mcp-dev/clojure-mcp && nix develop --command clojure -X:mcp :port 61321 2>/dev/null"
+              ];
             };
           };
-
-      homebrew = {
-        enable = true;
-        extraConfig = ''
-    brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets"]
-  '';
-        global.brewfile = true;
-        brewPrefix = "/opt/homebrew/bin";
-        onActivation = {
-          autoUpdate = true;
-          upgrade = true;
-          cleanup = "zap";
         };
-        taps = [
-          "railwaycat/emacsmacport"
-          "pharo-project/pharo"
-          "koekeishiya/formulae"
-          "brewsci/homebrew-science"
-          "nikitabobko/tap"
-          "d12frosted/emacs-plus"
-        ];
-        brews = brewPkgs;
-        casks = brewCasks;
-        masApps = {
-          # search for ids with commandline `mas search "app name"
-          # Xcode = 497799835;
-          # "1Password for Safari" = 1569813296;
-          "GarageBand" = 682658836;
-          # "DaVinci Resolve" = 571213070;
 
-          # https://apps.apple.com/fi/app/davinci-resolve/id571213070?mt=12
-         # "Turtle Beach Audio Hub"=  948410748; Redownload issue with Mac App Store
+        home.packages = nixPkgs;
+
+        home.sessionVariables = {
+          PAGER = "less";
+          CLICLOLOR = 1;
+          EDITOR = "zile";
+          DOCKER_CONTEXT = "desktop-linux";
         };
-      };
-      # here go the darwin preferences and config items
-      programs.zsh = {
-        enable = true;
-        # This makes zsh a login option
-        enableCompletion = true;
-      };
 
-      # Add this to specify your default shell:
-      users.users.samikallinen.shell = pkgs.zsh;
-      # environment.shells = [pkgs.bash pkgs.zsh];
-      # environment.loginShell = pkgs.zsh;
-      # environment.systemPackages = [pkgs.coreutils];
-      nix.extraOptions = ''
-            experimental-features = nix-command flakes
+        programs.bat.enable = true;
+        programs.bat.config.theme = "TwoDark";
+        programs.fzf.enable = true;
+        programs.fzf.enableZshIntegration = true;
+        programs.eza.enable = true;
+        programs.git.enable = true;
+        programs.starship.enable = true;
+        programs.starship.enableZshIntegration = true;
+
+        programs.alacritty = {
+          enable = true;
+          settings.font.normal.family = "MesloLGS Nerd Font Mono";
+          settings.font.size = 16;
+        };
+
+        programs.ssh = {
+          enable = true;
+          extraConfig = ''
+            Host *
+              IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
           '';
-      system.keyboard.enableKeyMapping = true;
-      system.keyboard.remapCapsLockToEscape = true;
-      fonts.packages = with pkgs; [
-        fira-code
-        font-awesome
-        inconsolata
-        nerdfonts
-        recursive
-        roboto
-        roboto-mono
-      ];
-      services = {
-        nix-daemon.enable = true;
-      };
-      system.defaults.finder.AppleShowAllExtensions = true;
-      system.defaults.finder._FXShowPosixPathInTitle = true;
-      system.defaults.dock.autohide = true;
-      system.defaults.NSGlobalDomain.AppleShowAllExtensions = true;
-      system.defaults.NSGlobalDomain.InitialKeyRepeat = 14;
-      system.defaults.NSGlobalDomain.KeyRepeat = 1;
-      system.defaults.spaces.spans-displays = false;
-      # backwards compat; don't change
-      system.stateVersion = 4;
-      home-manager = {
-        useGlobalPkgs = true;
-        useUserPackages = true;
-        users.samikallinen = {pkgs, ...}: {
-          # Don't change this when you change package input. Leave it alone.
-          home.stateVersion = "22.11";
-          # specify my home-manager configs
-          home.homeDirectory = pkgs.lib.mkForce "/Users/samikallinen";
-          home.file."Library/Application Support/Claude/claude_desktop_config.json".text = builtins.toJSON {
-            mcpServers = {
-              clojure-mcp = {
-                command = "bash";
-                args = [
-                  "-c"
-                  "cd /Users/samikallinen/projects/clojure-mcp-dev/clojure-mcp && nix develop --command clojure -X:mcp :port 61321 2>/dev/null"
-                ];
-              };
-            };
-          };
-          home.packages = nixPkgs;
-          home.sessionVariables = {
-            PAGER = "less";
-            CLICLOLOR = 1;
-            EDITOR = "zile";
-            SSH_AUTH_SOCK = "~/Library/Group\\ Containers/2BUA8C4S2C.com.1password/t/agent.sock";
-          };
-          # services.syncthing.enable = true; # FIX ME
-          programs.bat.enable = true;
-          programs.bat.config.theme = "TwoDark";
-          programs.fzf.enable = true;
-          programs.fzf.enableZshIntegration = true;
-          programs.eza.enable = true;
-          programs.git.enable = true;
-          programs.starship.enable = true;
-          programs.starship.enableZshIntegration = true;
-          programs.alacritty = {
-            enable = true;
-            settings.font.normal.family = "MesloLGS Nerd Font Mono";
-            settings.font.size = 16;
-          };
-          programs.zsh = {
-            enable = true;
-            enableCompletion = true;       # Optional
-          };
+        };
+
+        programs.zsh = {
+          enable = true;
+          enableCompletion = true;
+          initExtra = ''
+            if command -v docker >/dev/null 2>&1; then
+              if [ -z "''${DOCKER_HOST:-}" ] && docker context ls >/dev/null 2>&1; then
+                cur="$(docker context show 2>/dev/null || true)"
+                [ "$cur" != "desktop-linux" ] && docker context use desktop-linux >/dev/null 2>&1 || true
+              fi
+            fi
+          '';
         };
       };
-    })
+    };
+  })
