@@ -1,17 +1,19 @@
 {
   description = "my minimal flake";
   inputs = {
-    # Where we get most of our software. Giant mono repo with recipes
-    # called derivations that say how to build software.
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05"; # nixos-22.11
+    # Use the darwin-specific branch of nixpkgs
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-24.11-darwin";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    home-manager.url = "github:nix-community/home-manager/release-23.05";
+
+    # Match home-manager version with nixpkgs
+    home-manager.url = "github:nix-community/home-manager/release-24.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Controls system level software and settings including fonts
-    darwin.url = "github:lnl7/nix-darwin";
+    # Correct URL format for nix-darwin with matching version
+    darwin.url = "github:lnl7/nix-darwin/nix-darwin-24.11";
     darwin.inputs.nixpkgs.follows = "nixpkgs";
   };
+
   outputs = {
     self,
     nixpkgs,
