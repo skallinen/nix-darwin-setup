@@ -195,6 +195,27 @@
     system.defaults.NSGlobalDomain.KeyRepeat = 1;
     system.defaults.spaces.spans-displays = false;
 
+    # Configure Spotlight and related shortcuts
+    system.defaults.CustomUserPreferences = {
+  "com.apple.symbolichotkeys" = {
+    AppleSymbolicHotKeys = {
+      "60" = { enabled = 0; };
+      "61" = { enabled = 1; value = { parameters = [ 32 49 1048576 ]; type = "standard"; }; }; # Cmd+Space for Input Source
+      "64" = { enabled = 1; value = { parameters = [ 100 2 1048576 ]; type = "standard"; }; }; # Cmd+D for Spotlight
+    };
+  };
+};
+
+    system.activationScripts.postUserActivation.text = ''
+  /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 61 '{enabled = 1; value = {parameters = (32, 49, 1048576); type = standard;};}'
+  /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 60 '{enabled = 0;}'
+  /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 '{enabled = 1; value = {parameters = (100, 2, 1048576); type = standard;};}'
+  killall cfprefsd 2>/dev/null || true
+  killall SystemUIServer 2>/dev/null || true
+'';
+
+
+
     system.stateVersion = 4; # do not change
 
     home-manager = {
@@ -260,6 +281,21 @@
                 [ "$cur" != "desktop-linux" ] && docker context use desktop-linux >/dev/null 2>&1 || true
               fi
             fi
+            nix-switch() {
+              local flake="$HOME/src/system-config"
+              local host
+              if [ -n "$1" ]; then
+                host="$1"; shift
+              else
+                host="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
+              fi
+              case "$host" in
+                Samis-MacBook-Air|Gmtk-MacBook-Pro) ;;
+                /) echo "Unknown host '$host'. Use one of: Samis-MacBook-Air, Gmtk-MacBook-Pro"; return 1;;
+              esac
+              darwin-rebuild switch --flake "$flake#$host" "$@"
+             }
+
           '';
         };
       };

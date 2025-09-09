@@ -8,13 +8,13 @@ Outputs:
 
 What’s included
 - nix-darwin 24.11 + Home Manager 24.11 on nixpkgs 24.11 (darwin)
-- Homebrew via nix-darwin (formulae and casks)
+- Homebrew managed via nix-darwin (formulae and casks)
 - 1Password + 1password-cli (casks)
 - Docker Desktop (cask: docker-desktop)
-- Launch agent to auto-start Docker Desktop at login
 - Zsh as default shell, macOS defaults, fonts
 - Dev tools via Home Manager (ripgrep, git, awscli2, etc.)
 - SSH configured to use 1Password SSH agent via IdentityAgent
+- Optional: Aerospace (cask) — configure ~/.config/aerospace/aerospace.toml as you like
 
 Important
 - No secrets in this repo. If you need runtime secrets, use 1Password or project-specific envs.
@@ -28,18 +28,22 @@ Prereqs
 - Install Nix (daemon):
   - Determinate: `curl -L https://install.determinate.systems/nix | sh`
   - or Official: `sh <(curl -L https://nixos.org/nix/install) --daemon`
+- Install Homebrew (required before the first switch because nix-darwin manages brew packages):
+  - Apple Silicon:
+    - `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+    - Ensure it’s on PATH (usually automatic): add `eval "$(/opt/homebrew/bin/brew shellenv)"` to your shell init if needed.
 
 First apply (no local clone required)
 - Replace `<owner>` with your GitHub user/org.
 - Build and switch the Gmtk-MacBook-Pro config:
-  - `nix build github:skallinen/nix-darwin-setup#darwinConfigurations.Gmtk-MacBook-Pro.system`
-  - `./result/sw/bin/darwin-rebuild switch --flake github:skallinen/nix-darwin-setup#Gmtk-MacBook-Pro`
+  - `nix build --extra-experimental-features nix-command --extra-experimental-features flakes github:<owner>/nix-darwin-setup#darwinConfigurations.Gmtk-MacBook-Pro.system`
+  - `./result/sw/bin/darwin-rebuild switch --flake github:<owner>/nix-darwin-setup#Gmtk-MacBook-Pro`
 
 After the first switch
 - Open 1Password, sign in. Enable Developer → “Use the SSH agent”.
 - Sign into the App Store (for `mas` installs like GarageBand).
 - Re-run the switch to finish installs if needed:
-  - `darwin-rebuild switch --flake github:skallinen/nix-darwin-setup#Gmtk-MacBook-Pro`
+  - `darwin-rebuild switch --flake github:<owner>/nix-darwin-setup#Gmtk-MacBook-Pro`
 
 Verify
 - SSH with 1Password agent:
@@ -53,7 +57,23 @@ Verify
 
 Emacs config
 - Clone your Emacs config repo to `~/.config/emacs` (kept separate from this repo):
-  - `git clone git@github.com:<owner>/<emacs-repo>.git ~/.config/emacs`
+  - `git clone git@github.com:skallinen/<emacs-repo>.git ~/.config/emacs`
+
+## Keyboard shortcuts (managed)
+
+These are applied via `system.defaults.CustomUserPreferences` and an activation script.
+- Input source (ID 61): Command–Space
+- Spotlight (ID 64): Command–D
+
+If they don’t take effect after a switch, force-apply and restart UI services:
+
+```sh
+/usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 61 '{enabled = 1; value = {parameters = (32, 49, 1048576); type = standard;};}'
+/usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 60 '{enabled = 0;}'
+/usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 '{enabled = 1; value = {parameters = (100, 2, 1048576); type = standard;};}'
+killall cfprefsd 2>/dev/null || true
+killall SystemUIServer 2>/dev/null || true
+```
 
 ## Existing Mac (Air)
 
@@ -66,16 +86,33 @@ SSH via 1Password (managed)
 
 ## Common tasks
 
-Rebuild/switch commands (explicit):
-- Mac 1 
-  - darwin-rebuild switch --flake ~/src/system-config#Samis-MacBook-Air
-- Mac 2 
-  - darwin-rebuild switch --flake github:skallinen/nix-darwin-setup#Gmtk-MacBook-Pro
+Helper function to rebuild (auto-detect host): add to `~/.zshrc`
 
+```sh
+nix-switch() {
+  local flake="$HOME/src/system-config"
+  local host
+  if [ -n "$1" ]; then
+    host="$1"; shift
+  else
+    host="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
+  fi
+  case "$host" in
+    Samis-MacBook-Air|Gmtk-MacBook-Pro) ;;
+    *) echo "Unknown host '$host'. Use: Samis-MacBook-Air, Gmtk-MacBook-Pro"; return 1;;
+  esac
+  darwin-rebuild switch --flake "$flake#$host" "$@"
+}
+```
+
+Usage:
+- `nix-switch`  (auto-detects host)
+- `nix-switch Gmtk-MacBook-Pro`  (override)
+
+Other common commands
 - Rebuild/switch: `darwin-rebuild switch --flake ~/src/system-config#<Host>`
 - Update inputs: `nix flake update`
-- Update and switch in one go:
-  - `nix flake update && darwin-rebuild switch --flake ~/src/system-config#<Host>`
+- Update and switch in one go: `nix flake update && darwin-rebuild switch --flake ~/src/system-config#<Host>`
 
 ## Notes
 
@@ -86,8 +123,8 @@ Rebuild/switch commands (explicit):
 ## Troubleshooting
 
 - If SSH fails to use 1Password, ensure the agent is enabled in 1Password and that `ssh -G github.com` shows an IdentityAgent path under the 1Password Group Containers directory.
+- If keyboard shortcuts don’t stick, see the Keyboard shortcuts section above.
 - If `darwin-rebuild` reports files in the way, delete them or rely on backups (already enabled here) and re-run.
-
 
 ## Docker Desktop first run
 
@@ -108,4 +145,3 @@ First-time setup (one-time):
 Notes:
 - This flake sets DOCKER_CONTEXT=desktop-linux and auto-switches the docker context in zsh when appropriate.
 - Do not install Docker via `brew install docker` (that’s CLI-only). Use the cask `docker-desktop`.
-
