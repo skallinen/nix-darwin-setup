@@ -238,7 +238,7 @@
             };
           };
         };
-
+        home.file.".config/aerospace/aerospace.toml".source = ./aerospace/aerospace.toml;
         home.packages = nixPkgs;
 
         home.sessionVariables = {
@@ -281,20 +281,34 @@
                 [ "$cur" != "desktop-linux" ] && docker context use desktop-linux >/dev/null 2>&1 || true
               fi
             fi
+
             nix-switch() {
-              local flake="$HOME/src/system-config"
-              local host
-              if [ -n "$1" ]; then
-                host="$1"; shift
-              else
-                host="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
-              fi
-              case "$host" in
-                Samis-MacBook-Air|Gmtk-MacBook-Pro) ;;
-                /) echo "Unknown host '$host'. Use one of: Samis-MacBook-Air, Gmtk-MacBook-Pro"; return 1;;
+              local local_flake="$HOME/src/system-config"
+              local remote_flake="''${NIX_SWITCH_REMOTE_FLAKE:-github:skallinen/nix-darwin-setup}"
+              local origin="local" host
+
+              while [ $# -gt 0 ]; do
+                case "$1" in
+                  -o|--origin) origin="$2"; shift 2;;
+                  --remote) origin="remote"; shift;;
+                  --local) origin="local"; shift;;
+                  -h|--help) echo "Usage: nix-switch [--local|--remote|-o <flake-uri>] [HOST] [extra args]"; return 0;;
+                  /) if [ -z "$host" ]; then host="$1"; shift; else break; fi;;
+                esac
+              done
+
+              [ -z "$host" ] && host="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
+
+              local flake
+              case "$origin" in
+                local)  flake="$local_flake" ;;
+                remote) flake="$remote_flake" ;;
+                /)      flake="$origin" ;;  # allow arbitrary flake URI
               esac
+
               darwin-rebuild switch --flake "$flake#$host" "$@"
-             }
+            }
+
 
           '';
         };
