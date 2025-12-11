@@ -50,7 +50,7 @@
     graphviz
     
     # Misc
-    cmdstan
+    # cmdstan
     gvfs
     kitty
     matterbridge
