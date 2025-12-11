@@ -11,7 +11,7 @@
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
 
-  # --- Shared Folder (Mounts 'Work' from Mac) ---
+  # --- Filesystems ---
 fileSystems."/" = {
   device = "/dev/disk/by-uuid/1ac0129f-aeec-46d3-9f14-fdc54d85843f";
   fsType = "ext4";
@@ -28,7 +28,7 @@ fileSystems."/boot" = {
   networking.networkmanager.enable = true;
 
   # --- User ---
-  users.users.samikallinen = {
+  users.users.sakalli = {
     isNormalUser = true;
     home = "/home/samikallinen";
     extraGroups = [ "wheel" "networkmanager" ];
