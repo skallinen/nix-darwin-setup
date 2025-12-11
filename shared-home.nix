@@ -1,0 +1,167 @@
+{ pkgs, lib, ... }:
+
+{
+  # --- Shared Packages (CLI tools, languages, utilities) ---
+  home.packages = with pkgs; [
+    # Languages
+    clojure
+    python3
+    
+    # Build & VCS
+    cmake
+    git-filter-repo
+    gnumake
+    
+    # CLI essentials
+    awscli2
+    bat
+    coreutils
+    curl
+    diff-so-fancy
+    fd
+    fzf
+    gnupg
+    jc
+    jq
+    tldr
+    tokei
+    tree
+    wget
+    
+    # Search & Text
+    html-tidy
+    ripgrep
+    silver-searcher
+    w3m
+    
+    # Networking
+    arp-scan
+    iftop
+    nmap
+    rsync
+    caddy
+    
+    # Email & Docs
+    isync
+    mu
+    pandoc
+    
+    # Visualization
+    graphviz
+    
+    # Misc
+    cmdstan
+    gvfs
+    kitty
+    matterbridge
+    mob
+    tdlib
+  ];
+
+  home.sessionVariables = {
+    PAGER = "less";
+    EDITOR = "zile"; 
+    DOCKER_CONTEXT = "desktop-linux";
+  };
+
+  # --- Shared Program Configurations ---
+
+  programs.bat = {
+    enable = true;
+    config.theme = "TwoDark";
+  };
+
+  programs.fzf = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
+  programs.eza.enable = true;
+  programs.git.enable = true;
+  
+  programs.starship = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
+  programs.alacritty = {
+    enable = true;
+    settings.font.normal.family = "MesloLGS Nerd Font Mono";
+    settings.font.size = 16;
+  };
+
+programs.ssh = {
+  enable = true;
+  extraConfig = if pkgs.stdenv.isDarwin then ''
+    Host *
+      IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+  '' else ''
+    Host *
+      IdentityAgent "~/.1password/agent.sock"
+  '';
+};
+
+  programs.zsh = {
+    enable = true;
+    enableCompletion = true;
+    initExtra = ''
+    # Docker Context Switching (macOS only - Docker Desktop)
+if [ "$(uname)" = "Darwin" ] && command -v docker >/dev/null 2>&1; then
+  if [ -z "''${DOCKER_HOST:-}" ] && docker context ls >/dev/null 2>&1; then
+    cur="$(docker context show 2>/dev/null || true)"
+    [ "$cur" != "desktop-linux" ] && docker context use desktop-linux >/dev/null 2>&1 || true
+  fi
+fi
+
+      # --- UNIVERSAL NIX SWITCH ---
+      # Works on macOS (darwin-rebuild) and NixOS (nixos-rebuild)
+      # Preserves your original --remote / --local logic
+      nix-switch() {
+        local local_flake="$HOME/src/system-config"
+        local remote_flake="''${NIX_SWITCH_REMOTE_FLAKE:-github:skallinen/nix-darwin-setup}"
+        local origin="local"
+        local host=""
+        local target_os=""
+
+        # Detect OS
+        if [ "$(uname)" = "Linux" ]; then
+           target_os="linux"
+        else
+           target_os="macos"
+        fi
+
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --remote) origin="remote"; shift ;;
+            --local)  origin="local";  shift ;;
+            -h|--help) echo "Usage: nix-switch [--local|--remote] [HOST] [extra args]"; return 0 ;;
+            *) if [ -z "$host" ]; then host="$1"; shift; else break; fi ;;
+          esac
+        done
+
+        # Default Hostnames if none provided
+        if [ -z "$host" ]; then
+           if [ "$target_os" = "linux" ]; then
+             host="nixos-vm"
+           else
+             host="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
+           fi
+        fi
+
+        # Select Flake Source
+        local flake; [ "$origin" = "local" ] && flake="$local_flake" || flake="$remote_flake"
+
+        echo "🚀 Switching $target_os to $flake#$host..."
+
+        # Execute correct rebuild command
+        if [ "$target_os" = "linux" ]; then
+           sudo nixos-rebuild switch --flake "$flake#$host" "$@"
+        else
+           darwin-rebuild switch --flake "$flake#$host" "$@"
+        fi
+      }
+    '';
+  };
+
+  home.stateVersion = "22.11"; 
+}

@@ -1,80 +1,108 @@
 ({pkgs, ...}:
   let
     brewPkgs = [
-      "sox"
-      "libtool"
-      "syncthing"
-      "yt-dlp"
-      "mpv"
-      "ollama"
-      "poppler"
-      "node"
-      "glib"
-      "mu"
-      "pkg-config"
-      "cairo"
-      "pango"
-      "libpng"
-      "jpeg"
-      "giflib"
-      "librsvg"
-      "python-setuptools"
-      "pkg-config"
-      "poppler"         # for PDF tools
+      # --- Build toolchain ----------------------------------------------------
       "autoconf"
       "automake"
-      "zlib"
+      "libtool"
+      "pkg-config"
       "tree-sitter"
-      "gcc"
-      "libgccjit"
+
+      # --- Compilers & math ---------------------------------------------------
+#      "gcc"
       "isl"
-      "mpfr"
+#      "libgccjit"
       "libmpc"
+      "mpfr"
+
+      # --- Runtimes & language tooling ---------------------------------------
+      "node"
+      "python-setuptools"
+
+      # --- System & imaging libs ---------------------------------------------
+      "giflib"
+      "glib"
+      "jpeg"
+      "libpng"
+      "zlib"
+
+      # --- Graphics & rendering ----------------------------------------------
+      "cairo"
+      "librsvg"
+      "pango"
+      "poppler"
+
+      # --- Media tools --------------------------------------------------------
+      "mpv"
+      "sox"
+      "yt-dlp"
+
+      # --- Sync / network / AI -----------------------------------------------
+      "ollama"
+      "syncthing"
     ];
+
     brewCasks = [
-      "pdf-pals"
-      "keycastr"
-      "vlc"
-      "supercollider"
-      "blackhole-2ch"
-      "caffeine"
-      "calibre"
-      "dropbox"
-      "google-chrome"
+      # --- Browsers -----------------------------------------------------------
       "firefox"
+      "google-chrome"
+
+      # --- Communication ------------------------------------------------------
+      "discord"
+      "signal"
+      "slack"
       "telegram"
       "zoom"
-      "krita"
-      "signal"
-      "obs"
-      "spaceid"
-      "slack"
-      "discord"
-      "1password"
-      "1password-cli"
-      "nordlayer"
-      "mongodb-compass"
+
+      # --- Media & creative ---------------------------------------------------
       "audacity"
-      "google-drive"
-      "pharo-launcher"
-      "opencpn"
-      "meshlab"
-      "aerospace"
+      "calibre"
       "inkscape"
-      "claude"
+      "krita"
+      "meshlab"
+      "obs"
+      "vlc"
+
+      # --- Cloud & sync -------------------------------------------------------
+      "dropbox"
+      "google-drive"
+
+      # --- Developer tools ----------------------------------------------------
+      "1password-cli"
+      "mongodb-compass"
+      "pharo-launcher"
+
+      # --- System utilities ---------------------------------------------------
+      "aerospace"
+      "blackhole-2ch"
+      "caffeine"
       "docker-desktop"          # Docker Desktop
+      "karabiner-elements"      # Needed for Caps Lock -> Command remapping
+      "keycastr"
+        { name = "nordlayer"; greedy = true; }
+      "pdf-pals"
+      "spaceid"
+
+      # --- Security & passwords ----------------------------------------------
+      "1password"
+
+      # --- Audio/code/research miscellany ------------------------------------
+      "claude"
+      "opencpn"
+      "supercollider"
     ];
+
     nixPkgs = with pkgs; [
-      isync
-      pandoc
-      cmdstan
-      mob
-      tdlib
-      kitty
-      w3m
-      html-tidy
-      arp-scan
-      ripgrep
+      # --- Languages ----------------------------------------------------------
+      clojure
+      python3
+
+      # --- Build & VCS --------------------------------------------------------
+      cmake
+      git-filter-repo
+      gnumake
+
+      # --- CLI essentials -----------------------------------------------------
       awscli2
       bat
       coreutils
@@ -82,32 +110,45 @@
       diff-so-fancy
       fd
       fzf
-      git-filter-repo
-      gnumake
-      cmake
       gnupg
-      iftop
-      pngpaste
       jc
       jq
-      m-cli
-      nmap
-      python3
-      ripgrep
-      rsync
-      silver-searcher
+      pngpaste
       terminal-notifier
-      tokei
       tldr
+      tokei
       tree
       wget
+
+      # --- Search & text ------------------------------------------------------
+      html-tidy
+      ripgrep
+      silver-searcher
+      w3m
+
+      # --- Networking ---------------------------------------------------------
+      arp-scan
+      iftop
+      m-cli
+      nmap
+      rsync
+      caddy
+
+      # --- Email & docs -------------------------------------------------------
+      isync
       mu
+      pandoc
+
+      # --- Visualization ------------------------------------------------------
       graphviz
-      tdlib
-      matterbridge
+
+      # --- Misc & tools -------------------------------------------------------
+      cmdstan
       gvfs
-      graphviz
-      clojure
+      kitty
+      matterbridge
+      mob
+      tdlib
     ];
   in
   {
@@ -133,16 +174,22 @@
 
     homebrew = {
       enable = true;
-      extraConfig = ''
-        brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets"]
-      '';
+ extraConfig = ''
+  # Emacs 29 is stable and works with current tree-sitter/gcc versions
+  brew "d12frosted/emacs-plus/emacs-plus@29", args: ["with-xwidgets", "with-native-comp"]
+'';
+#     extraConfig = ''
+#        brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets"]
+#      '';
       global.brewfile = true;
       brewPrefix = "/opt/homebrew/bin";
+
       onActivation = {
         autoUpdate = true;
         upgrade = true;
         cleanup = "zap";
       };
+
       taps = [
         "railwaycat/emacsmacport"
         "pharo-project/pharo"
@@ -171,7 +218,7 @@
     '';
 
     system.keyboard.enableKeyMapping = true;
-    system.keyboard.remapCapsLockToEscape = true;
+    # system.keyboard.remapCapsLockToEscape = true; # DISABLED: Handling via Karabiner below
 
     fonts.packages = with pkgs; [
       fira-code
@@ -197,24 +244,22 @@
 
     # Configure Spotlight and related shortcuts
     system.defaults.CustomUserPreferences = {
-  "com.apple.symbolichotkeys" = {
-    AppleSymbolicHotKeys = {
-      "60" = { enabled = 0; };
-      "61" = { enabled = 1; value = { parameters = [ 32 49 1048576 ]; type = "standard"; }; }; # Cmd+Space for Input Source
-      "64" = { enabled = 1; value = { parameters = [ 100 2 1048576 ]; type = "standard"; }; }; # Cmd+D for Spotlight
+      "com.apple.symbolichotkeys" = {
+        AppleSymbolicHotKeys = {
+          "60" = { enabled = 0; };
+          "61" = { enabled = 1; value = { parameters = [ 32 49 1048576 ]; type = "standard"; }; }; # Cmd+Space for Input Source
+          "64" = { enabled = 1; value = { parameters = [ 100 2 1048576 ]; type = "standard"; }; }; # Cmd+D for Spotlight
+        };
+      };
     };
-  };
-};
 
     system.activationScripts.postUserActivation.text = ''
-  /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 61 '{enabled = 1; value = {parameters = (32, 49, 1048576); type = standard;};}'
-  /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 60 '{enabled = 0;}'
-  /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 '{enabled = 1; value = {parameters = (100, 2, 1048576); type = standard;};}'
-  killall cfprefsd 2>/dev/null || true
-  killall SystemUIServer 2>/dev/null || true
-'';
-
-
+      /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 61 '{enabled = 1; value = {parameters = (32, 49, 1048576); type = standard;};}'
+      /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 60 '{enabled = 0;}'
+      /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 '{enabled = 1; value = {parameters = (100, 2, 1048576); type = standard;};}'
+      killall cfprefsd 2>/dev/null || true
+      killall SystemUIServer 2>/dev/null || true
+    '';
 
     system.stateVersion = 4; # do not change
 
@@ -227,18 +272,48 @@
 
         home.homeDirectory = pkgs.lib.mkForce "/Users/samikallinen";
 
-        home.file."Library/Application Support/Claude/claude_desktop_config.json".text = builtins.toJSON {
-          mcpServers = {
-            clojure-mcp = {
-              command = "bash";
-              args = [
-                "-c"
-                "cd /Users/samikallinen/projects/clojure-mcp-dev/clojure-mcp && nix develop --command clojure -X:mcp :port 61321 2>/dev/null"
-              ];
-            };
-          };
-        };
         home.file.".config/aerospace/aerospace.toml".source = ./aerospace/aerospace.toml;
+
+        # --- UPDATED: Karabiner Configuration ---
+        # Remaps CapsLock to Left Command ONLY (No Escape)
+        home.file.".config/karabiner/karabiner.json".text = builtins.toJSON {
+          global = {
+            check_for_updates_on_startup = true;
+            show_in_menu_bar = true;
+            show_profile_name_in_menu_bar = false;
+          };
+          profiles = [
+            {
+              name = "Default";
+              selected = true;
+              complex_modifications = {
+                rules = [
+                  {
+                    description = "Caps Lock -> Left Command";
+                    manipulators = [
+                      {
+                        type = "basic";
+                        from = {
+                          key_code = "caps_lock";
+                          modifiers = { optional = [ "any" ]; };
+                        };
+                        to = [ { key_code = "left_command"; } ];
+                      }
+                    ];
+                  }
+                ];
+              };
+              devices = [];
+              fn_function_keys = [];
+              simple_modifications = [];
+              virtual_hid_keyboard = {
+                keyboard_type_v2 = "ansi";
+              };
+            }
+          ];
+        };
+        # ----------------------------------------
+
         home.packages = nixPkgs;
 
         home.sessionVariables = {
@@ -285,31 +360,22 @@
             nix-switch() {
               local local_flake="$HOME/src/system-config"
               local remote_flake="''${NIX_SWITCH_REMOTE_FLAKE:-github:skallinen/nix-darwin-setup}"
-              local origin="local" host
+              local origin="local"
+              local host=""
 
               while [ $# -gt 0 ]; do
                 case "$1" in
-                  -o|--origin) origin="$2"; shift 2;;
-                  --remote) origin="remote"; shift;;
-                  --local) origin="local"; shift;;
-                  -h|--help) echo "Usage: nix-switch [--local|--remote|-o <flake-uri>] [HOST] [extra args]"; return 0;;
-                  /) if [ -z "$host" ]; then host="$1"; shift; else break; fi;;
+                  --remote) origin="remote"; shift ;;
+                  --local)  origin="local";  shift ;;
+                  -h|--help) echo "Usage: nix-switch [--local|--remote] [HOST] [extra args]"; return 0 ;;
+                  /) if [ -z "$host" ]; then host="$1"; shift; else break; fi ;;
                 esac
               done
 
               [ -z "$host" ] && host="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
-
-              local flake
-              case "$origin" in
-                local)  flake="$local_flake" ;;
-                remote) flake="$remote_flake" ;;
-                /)      flake="$origin" ;;  # allow arbitrary flake URI
-              esac
-
+              local flake; [ "$origin" = "local" ] && flake="$local_flake" || flake="$remote_flake"
               darwin-rebuild switch --flake "$flake#$host" "$@"
             }
-
-
           '';
         };
       };

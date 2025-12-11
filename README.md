@@ -89,20 +89,7 @@ SSH via 1Password (managed)
 Helper function to rebuild (auto-detect host): add to `~/.zshrc`
 
 ```sh
-nix-switch() {
-  local flake="$HOME/src/system-config"
-  local host
-  if [ -n "$1" ]; then
-    host="$1"; shift
-  else
-    host="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
-  fi
-  case "$host" in
-    Samis-MacBook-Air|Gmtk-MacBook-Pro) ;;
-    *) echo "Unknown host '$host'. Use: Samis-MacBook-Air, Gmtk-MacBook-Pro"; return 1;;
-  esac
-  darwin-rebuild switch --flake "$flake#$host" "$@"
-}
+
 ```
 
 Usage:
