@@ -66,8 +66,11 @@
       # 2. 'op "$@"' (executes the requested command with that auth)
       # 3. 'tr -d \r' (strips SSH TTY artifacts so Emacs gets clean JSON)
       
+      # Escape arguments locally to preserve them through SSH
+      QARGS=$(printf "%q " "$@")
+      
       # We ignore the output of signin to keep stdout clean for the actual command
-      ssh $SSH_OPTS $HOST "env TERM=xterm-256color /bin/bash -c '/opt/homebrew/bin/op signin --force >/dev/null 2>&1 && /opt/homebrew/bin/op \"$@\"'" | tr -d '\r'
+      ssh $SSH_OPTS $HOST "env TERM=xterm-256color /bin/bash -c '/opt/homebrew/bin/op signin --force >/dev/null 2>&1 && /opt/homebrew/bin/op $QARGS'" | tr -d '\r'
     '')
   ];
 
