@@ -9,6 +9,7 @@
   nixpkgs.config.allowUnfree = true;
 
   # --- Boot & Hardware ---
+  boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelModules = [ "9p" "9pnet" "9pnet_virtio" ];
   
