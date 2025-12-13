@@ -419,10 +419,7 @@
 If nil, rely on a single biometric prompt triggered by `op inject`.")
 
 ;; Exact binaries so 1Password Authorized Apps can match the paths precisely.
-(defvar srk/op-bin
-  (if (eq system-type 'darwin)
-      (or (executable-find "op") "op")
-    "host-op")
+(defvar srk/op-bin (setq srk/op-bin (or (executable-find "host-op") (executable-find "op") "op"))
   "Absolute path to the 1Password CLI binary (falls back to 'op' on Mac, 'host-op' on Linux).")
 
 (defvar srk/op-shell-path
@@ -2239,7 +2236,7 @@ Follow these steps:
 (use-package vterm
   :ensure t
   :custom
-  (vterm-shell "/etc/profiles/per-user/samikallinen/bin/zsh")
+  (vterm-shell (if (eq system-type 'darwin) "/bin/zsh" "/etc/profiles/per-user/sakalli/bin/zsh"))
   :config
   ;; Any other vterm configuration you might have
   )
@@ -4027,8 +4024,12 @@ Ease of use features:
 
 
 
-(set-face-attribute 'default nil :family "RobotoMono Nerd Font") 
-(set-face-attribute 'fixed-pitch nil :family "RobotoMono Nerd Font")
+(let ((font-name "RobotoMono Nerd Font"))
+  (if (find-font (font-spec :name font-name))
+      (progn
+        (set-face-attribute 'default nil :family font-name :height 110 :weight 'normal)
+        (set-face-attribute 'fixed-pitch nil :family font-name :height 110 :weight 'normal))
+    (set-face-attribute 'default nil :family "Roboto Mono" :height 110 :weight 'normal)))
 ;;    (set-face-attribute 'variable-pitch nil :font "Helvetica")
 
 
@@ -4801,49 +4802,6 @@ This iterative approach will make the task less daunting and reduce the risk of 
   - [ ] TODO Test on a different machine if possible to ensure portability.
   - [ ] TODO Document any environment setup requirements (e.g., 1Password CLI installation) in a README.
     
-
-
-* MCP tweaks
-Add a guard to ensure the clojure-mcp stdio process uses UTF-8, to avoid JSON-RPC decoding errors.
-
-#+begin_src emacs-lisp
-(with-eval-after-load 'mcp
-  (defun srk/mcp-fix-process-coding ()
-    (when (boundp 'mcp-server-connections)
-      (maphash
-       (lambda (_name conn)
-         (let ((p (ignore-errors (oref conn process))))
-           (when (process-live-p p)
-             (set-process-coding-system p 'utf-8-unix 'utf-8-unix)
-             ;; (set-process-coding-system p 'no-conversion 'no-conversion)
-             )))
-       mcp-server-connections)))
-  (advice-add 'mcp-hub-start-server     :after (lambda (&rest _) (srk/mcp-fix-process-coding)))
-  (advice-add 'mcp-hub-restart-server   :after (lambda (&rest _) (srk/mcp-fix-process-coding)))
-  (advice-add 'mcp-hub-start-all-server :after (lambda (&rest _) (srk/mcp-fix-process-coding)))
-  (advice-add 'mcp-hub-restart-all-server :after (lambda (&rest _) (srk/mcp-fix-process-coding))))
-#+end_src
-
-
-* MCP tweaks
-Add a guard to ensure the clojure-mcp stdio process uses UTF-8, to avoid JSON-RPC decoding errors.
-
-#+begin_src emacs-lisp
-(with-eval-after-load 'mcp
-  (defun srk/mcp-fix-process-coding ()
-    (when (boundp 'mcp-server-connections)
-      (maphash
-       (lambda (_name conn)
-         (let ((p (ignore-errors (oref conn process))))
-           (when (process-live-p p)
-             (set-process-coding-system p 'utf-8-unix 'utf-8-unix)
-             ;; (set-process-coding-system p 'no-conversion 'no-conversion)
-             )))
-       mcp-server-connections)))
-  (dolist (f '(mcp-hub-start-server mcp-hub-restart-server mcp-hub-start-all-server mcp-hub-restart-all-server))
-    (advice-add f :after (lambda (&rest _) (srk/mcp-fix-process-coding))))
-  )
-#+end_src
 
 
 * MCP tweaks
