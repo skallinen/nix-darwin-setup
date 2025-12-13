@@ -58,7 +58,8 @@
     tdlib
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     (pkgs.writeShellScriptBin "host-op" ''
-      ssh -o StrictHostKeyChecking=no samikallinen@192.168.64.1 /opt/homebrew/bin/op "$@"
+      export SSH_AUTH_SOCK=$HOME/.1password/agent.sock
+      exec op "$@"
     '')
   ];
 
@@ -112,6 +113,7 @@ programs.ssh = {
       StrictHostKeyChecking no
       UserKnownHostsFile /dev/null
       ForwardAgent yes
+      RemoteForward /home/sakalli/.1password/agent.sock "/Users/samikallinen/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
   '' else '''';
 };
 
