@@ -1,0 +1,4867 @@
+* Table of contents
+- [[*Dummy][Dummy]]
+- [[*Markdown Xwidget][Markdown Xwidget]]
+- [[*Disable mouse][Disable mouse]]
+- [[*1Password Helper Functions][1Password Helper Functions]]
+- [[*PDF-tools][PDF-tools]]
+- [[*Gptel][Gptel]]
+- [[*Browse url with browser][Browse url with browser]]
+- [[*Mail][Mail]]
+- [[*Separedit][Separedit]]
+- [[*Stanmode][Stanmode]]
+- [[*Magit][Magit]]
+- [[*Zprint][Zprint]]
+- [[*Treemacs][Treemacs]]
+- [[*VTT file helpers][VTT file helpers]]
+- [[*dired-preview][dired-preview]]
+- [[*Denote][Denote]]
+- [[*Elisa][Elisa]]
+- [[*Yeetube][Yeetube]]
+- [[*Language detection][Language detection]]
+- [[*Iedit][Iedit]]
+- [[*Spacious-padding][Spacious-padding]]
+- [[*File shortcuts][File shortcuts]]
+- [[*Keyfreq][Keyfreq]]
+- [[*Ement.el][Ement.el]]
+- [[*1password][1password]]
+- [[*Free keys][Free keys]]
+- [[*Vterm][Vterm]]
+- [[*Golden ratio][Golden ratio]]
+- [[*Visible mark][Visible mark]]
+- [[*Clay][Clay]]
+- [[*Alert][Alert]]
+- [[*rainbow-delimiters][rainbow-delimiters]]
+- [[*Rainbow mode][Rainbow mode]]
+- [[*Slack][Slack]]
+- [[*GPT helper functions][GPT helper functions]]
+- [[*CRDT][CRDT]]
+- [[*Mastodon][Mastodon]]
+- [[*Clojure essential ref nov][Clojure essential ref nov]]
+- [[*Thing At Point][Thing At Point]]
+- [[*Neil][Neil]]
+- [[*Http twiddle][Http twiddle]]
+- [[*w3m-emacs][w3m-emacs]]
+- [[*Which key][Which key]]
+- [[*Expand Region][Expand Region]]
+- [[*Autothemer][Autothemer]]
+- [[*Hydra][Hydra]]
+- [[*Org mode][Org mode]]
+- [[*Helpful][Helpful]]
+- [[*Spelling and grammar][Spelling and grammar]]
+- [[*Coding and scripting][Coding and scripting]]
+- [[*Other][Other]]
+- [[*Dired][Dired]]
+- [[*Pfrettier][Pfrettier]]
+- [[*Modes and packages][Modes and packages]]
+- [[*Various][Various]]
+- [[*Tempstuff][Tempstuff]]
+- [[*Here][Here]]
+- [[*Here's a plan to clean up and restructure your =myinit.org= configuration:][Here's a plan to clean up and restructure your =myinit.org= configuration:]]
+- [[*Plan for small, atomic, daily changes. The idea is to pick one small task each morning, complete it, ensure Emacs is still working correctly, and commit the change.][Plan for small, atomic, daily changes. The idea is to pick one small task each morning, complete it, ensure Emacs is still working correctly, and commit the change.]]
+- [[*Todolinst][Todolinst]]
+
+#+startup: indent
+#+startup: hidestars
+(message "myinit.org evaluation starts here")
+#+begin_src emacs-lisp
+;; (defun my/git-branch ()
+;;   "Get the current git branch name."
+;;   (let ((branch (shell-command-to-string "git rev-parse --abbrev-ref HEAD 2>/dev/null")))
+;;     (string-trim branch)))
+
+;; (defun my/mode-line-git-branch ()
+;;   "Mode line component to display the git branch."
+;;   (let ((branch (my/git-branch)))
+;;     (if (string= "" branch)
+;;         ""  ; Return an empty string if not in a Git repo
+;;       (concat " Git:" branch " "))))  ; Concatenate with a prefix/suffix
+
+;; (add-to-list 'mode-line-format '(:eval (my/mode-line-git-branch)))
+#+end_src
+
+#+begin_src emacs-lisp
+
+(require 'cl-lib)
+
+(setq org-hide-emphasis-markers t)
+(setq css-indent-offset 2)
+(setq browse-url-browser-function 'w3m-browse-url)
+(global-set-key (kbd "M-]") 'call-last-kbd-macro)
+
+
+(defun srk/occur-open-buffers (regexp)
+  (interactive "sRegex: ")
+  (multi-occur-in-matching-buffers "." regexp t))
+
+(setq mac-command-modifier 'super)
+
+(when (eq system-type 'darwin)
+  (setq mac-option-modifier 'meta))
+
+(defun srk/clj-indent-like-ret ()
+  (interactive)
+  (let ((indent-region-function nil)) ;; bypass LSP advice
+    (if (use-region-p)
+        (clojure-indent-region (region-beginning) (region-end))
+      (clojure-indent-line))))
+
+
+(add-hook 'clojure-mode-hook
+          (lambda ()
+            ;; use clojure-mode indent only
+            (setq-local lsp-enable-indentation nil
+                        lsp-enable-on-type-formatting nil)
+            (remove-hook 'before-save-hook #'lsp--format-buffer-before-save t)
+            (setq-local indent-region-function #'clojure-indent-region)
+            ;; make both keys indent like RET
+            (local-set-key (kbd "<C-i>") #'srk/clj-indent-like-ret)))
+
+
+(defun my-lisp-mode-hook ()
+  (hs-minor-mode)
+  (local-set-key (kbd "<backtab>") 'hs-show-all) ;; ctrl+shift+=
+  (local-set-key (kbd "C-S-<iso-lefttab>") 'hs-hide-all) ;; ctrl+shift+-
+  (local-set-key (kbd "C-S-<return>") 'hs-hide-level) ;; ctrl+shift+-
+  (local-set-key (kbd "TAB") 'hs-toggle-hiding))
+
+
+(add-hook 'lisp-mode-hook 'my-lisp-mode-hook)
+(add-hook 'emacs-lisp-mode-hook 'my-lisp-mode-hook)
+(add-hook 'clojure-mode-hook 'my-lisp-mode-hook)
+
+(defun srk/escape-double-quote (string)
+  "Escape double quotes in STRING."
+  (replace-regexp-in-string "\"" "\\\\\"" string))
+
+(defun srk/escape-quotes-yank ()
+  "Yank the latest kill-ring entry at point with single and double quotes escaped."
+  (interactive)
+  (when kill-ring
+    (insert (srk/escape-double-quote (current-kill 0)))))
+
+(defun srk/org-timer-start-minutes (minutes)
+  (interactive "P")
+  (org-timer-start (* 60 minutes)))
+
+(use-package sparql-mode
+  :straight t
+  :after org-mode
+  :config
+  (add-to-list 'auto-mode-alist '("\\.sparql$" . sparql-mode))
+  (add-to-list 'auto-mode-alist '("\\.rq$" . sparql-mode))
+  (add-hook 'sparql-mode-hook 'company-mode)
+  (add-to-list 'org-babel-load-languages '(sparql . t) )  )
+
+(add-to-list 'org-babel-load-languages '(dot . t) )
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((dot . t)
+   (plantuml .t)))
+
+(use-package yaml-mode
+  :straight t
+  :config
+  (add-to-list 'auto-mode-alist '("\\.yml\\'" . yaml-mode))
+  (add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode))
+  )
+
+(eval-after-load "term"
+  '(define-key term-raw-map (kbd "C-c C-y") 'term-paste))
+
+(eval-after-load "ansi-term"
+  '(define-key ansi-term-raw-map (kbd "C-c C-y") 'term-paste))
+(require 'generic-x)
+
+(defun srk/reload-dir-locals-for-current-buffer ()
+  "reload dir locals for the current buffer"
+  (interactive)
+  (let ((enable-local-variables :all))
+    (hack-dir-local-variables-non-file-buffer)))
+
+(define-generic-mode 
+    'httphl-mode                       ;; name of the mode
+  nil                               ;; comments delimiter
+  nil ;;'("function" "var" "return")      ;; some keywords
+  '(("POST" . 'font-lock-constant-face)
+    ("GET" . 'font-lock-constant-face)
+    ("Host:" . 'font-lock-keyword-face)
+    ("host:" . 'font-lock-keyword-face)
+    ("Content-Type:" . 'font-lock-keyword-face)
+    ("content-type:" . 'font-lock-keyword-face)
+    ("Accept:" . 'font-lock-keyword-face)
+    ("accept:" . 'font-lock-keyword-face);; some operators
+    ("User-Agent:" . 'font-lock-keyword-face)
+    ("user-agent:" . 'font-lock-keyword-face)
+    ("Authorization:" . 'font-lock-keyword-face)
+    ("Connection:" . 'font-lock-keyword-face)
+    ("connection:" . 'font-lock-keyword-face)
+    ("HTTP/1.0" . 'font-lock-type-face)
+    ("HTTP/1.1" . 'font-lock-type-face)
+    ("HTTP/2" . 'font-lock-type-face)
+    ("HTTP/3" . 'font-lock-type-face)
+    ("Bearer" . 'font-lock-variable-name-face)
+    ("Mozilla" . 'font-lock-function-name-face)
+    ("X11" . 'font-lock-function-name-face)
+    ("Linux x86_64" . 'font-lock-function-name-face)
+    ("AppleWebKit" . 'font-lock-function-name-face)
+    ("KHTML" . 'font-lock-function-name-face)
+    ("Gecko" .'font-lock-function-name-face)
+    ("Chrome" . 'font-lock-function-name-face)
+    ("Safari" . 'font-lock-function-name-face)
+    ("Accept-Language:" . 'font-lock-keyword-face)
+    ("accept-language:" . 'font-lock-keyword-face)
+    ("Accept-Encoding:" . 'font-lock-keyword-face)
+    ("accept-encoding:" . 'font-lock-keyword-face)
+    ("Content-Length:" . 'font-lock-keyword-face)
+    ("content-length:" . 'font-lock-keyword-face)
+    ("Pragma:" . 'font-lock-keyword-face)
+    ("pragma:" . 'font-lock-keyword-face)
+    ("accept:" . 'font-lock-keyword-face)
+    ("Accept-Encoding:" . 'font-lock-keyword-face)
+    ("accept-encoding:" . 'font-lock-keyword-face)
+    ("Content-Disposition:" . 'font-lock-keyword-face)
+    ("content-disposition:" . 'font-lock-keyword-face)
+    ("Content-Transfer-Encoding:" . 'font-lock-keyword-face)
+    ;;  ("content-transfer-encoding:" . 'font-lock-keyword-face)
+    ("" . 'font-lock-keyword-face)
+    ("Cache-Control:" . 'font-lock-keyword-face)
+    ("cache-control:" . 'font-lock-keyword-face)
+    )     ;; a built-in 
+  '("\\.http$")                    ;; files that trigger this mode
+  "Simple custom http request highlighting mode"     ;; doc string
+  )
+
+;; (font-lock-type-face            (:foreground 8bs-main-orange))
+;; (font-lock-variable-name-face   (:foreground 8bs-red1))
+;; (font-lock-warning-face         (:foreground 8bs-red1))
+;; (font-lock-keyword-face         (:foreground 8bs-main-teal))
+;; (font-lock-function-name-face   (:foreground 8bs-main-pink))
+;; (font-lock-builtin-face         (:foreground 8bs-main-teal))
+;; (font-lock-constant-face        (:foreground 8bs-green1))
+;; (font-lock-string-face           (:foreground 8bs-main-pink))
+;; (font-lock-comment-face         (:foreground 8bs-gray3))
+
+
+(setq dired-listing-switches "-lah")
+(setq native-comp-async-report-warnings-errors nil)
+(defun http-twiddle-tls-toggle ()
+  "Toggle TLS (https) on and off."
+  (interactive)
+  (setq http-twiddle-tls (not http-twiddle-tls))
+  (message (if http-twiddle-tls
+  	       "http-twiddle TLS (https) on"
+  	     "http-twiddle TLS (https) off")))
+(require 'ibuf-ext)
+(add-to-list 'ibuffer-never-show-predicates "^\\*")
+(global-set-key (kbd "C-x C-b") 'ibuffer)
+
+#+end_src 
+(use-package clojure-essential-ref-nov
+:init
+(setq clojure-essential-ref-nov-epub-path "~/Downloads/Clojure_The_Essential_Reference_v29_MEAP.epub"))
+(use-package separedit
+
+:commands separedit
+
+:custom
+(separedit-preserve-string-indentation t)
+(separedit-continue-fill-column t)
+(separedit-default-mode markdown-mode)
+
+:config
+(push '("clj" . clojure-mode) separedit-code-lang-modes)
+(add-hook 'separedit-buffer-creation-hook #'auto-fill-mode))
+
+(use-package stan-mode)
+
+
+* Emacs setup
+** Dummy
+#+begin_src emacs-lisp
+
+#+end_src
+
+** Kaocha runner
+#+begin_src emacs-lisp
+(use-package kaocha-runner
+  :straight (kaocha-runner
+             :type git
+             :host github
+             :repo "magnars/kaocha-runner.el")
+  :after (clojure-mode cider)
+  :demand t
+  :config
+  ;; Manual control keybindings
+  (define-key clojure-mode-map (kbd "C-c t") #'kaocha-runner-run-test-at-point)
+  (define-key clojure-mode-map (kbd "C-c n") #'kaocha-runner-run-tests)  ; current file/ns
+  (define-key clojure-mode-map (kbd "C-c r") #'kaocha-runner-run-all-tests)  ; all tests
+
+  ;; Prevent duplicate on-save runs
+  (defvar-local srk/inhibit-kaocha-on-save nil)
+
+  ;; Helper: run tests after load (called by timer with explicit args)
+  (defun srk--kaocha-after-load (buf ns)
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (when (and ns (stringp ns))
+          (ignore-errors (cider-repl-set-ns (substring-no-properties ns))))
+        (call-interactively #'kaocha-runner-run-tests))))
+
+  ;; Helper: re-enable on-save hook (called by timer with explicit arg)
+  (defun srk--re-enable-on-save (buf)
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (setq-local srk/inhibit-kaocha-on-save nil))))
+
+  ;; Helper: create callback with proper closure using backquote
+  (defun srk--make-cider-callback (buf ns)
+    "Create a callback for cider-load-buffer that captures BUF and NS."
+    `(lambda (&rest _)
+       (run-at-time 0.05 nil #'srk--kaocha-after-load ,buf ,ns)))
+
+  ;; Save + eval via CIDER + run tests
+  (defun srk/save-eval-and-run-kaocha ()
+  "Save, load via CIDER, then run Kaocha tests for this buffer's ns."
+  (interactive)
+  (let ((file buffer-file-name)
+        (ext  (and buffer-file-name (file-name-extension buffer-file-name)))
+        (buf  (current-buffer))
+        (ns   (or (ignore-errors (cider-current-ns))
+                  (ignore-errors (symbol-name (clojure-find-ns)))))
+        (is-e2e (and buffer-file-name (string-match-p "/e2e/" buffer-file-name)))
+        (is-test (and buffer-file-name (string-match-p "_test\\.clj[cs]?$" buffer-file-name))))
+    (unless (and file (member ext '("clj" "cljs" "cljc")))
+      (user-error "Not a Clojure file; skipping test run."))
+    (unless (featurep 'cider)
+      (user-error "CIDER not loaded"))
+    (unless (ignore-errors (cider-connected-p))
+      (user-error "CIDER not connected"))
+    (unless (fboundp 'kaocha-runner-run-tests)
+      (require 'kaocha-runner))
+    
+    ;; Prevent on-save hook from firing
+    (setq-local srk/inhibit-kaocha-on-save t)
+    (save-buffer)
+    
+    ;; Load buffer with or without test callback
+    (cond
+     ((not is-test)
+      (message "Loading non-test buffer...")
+      (cider-load-buffer))
+     (is-e2e
+      (message "⚠ Loading e2e test buffer WITHOUT running tests...")
+      (cider-load-buffer)
+      (run-at-time 0.1 nil (lambda () (message "✓ e2e buffer loaded (tests not run)"))))
+     (t
+      (cider-load-buffer nil (srk--make-cider-callback buf ns))))
+    
+    ;; Re-enable on-save after a moment
+    (run-at-time 0.2 nil #'srk--re-enable-on-save buf)))
+  
+
+  ;; Bind in CIDER mode
+  (with-eval-after-load 'cider
+    (define-key cider-mode-map (kbd "C-c C-b") #'srk/save-eval-and-run-kaocha))
+
+  ;; On-save runner for test files
+  (defun my/run-kaocha-file-on-save ()
+    (when (and (not (bound-and-true-p srk/inhibit-kaocha-on-save))
+               buffer-file-name
+               (string-match-p "_test\\.clj[cs]?$" buffer-file-name))
+      (let* ((raw-ns (or (ignore-errors (cider-current-ns))
+                         (ignore-errors (symbol-name (clojure-find-ns)))))
+             (ns     (and (stringp raw-ns) (substring-no-properties raw-ns))))
+        (unless (and ns (string-match-p "smoke-test" ns))
+          (kaocha-runner-run-tests)))))
+
+  ;; Enable per-buffer on-save hook
+  (add-hook 'clojure-mode-hook
+            (lambda ()
+              (add-hook 'after-save-hook #'my/run-kaocha-file-on-save nil t)))
+  (when (fboundp 'clojure-ts-mode)
+    (add-hook 'clojure-ts-mode-hook
+              (lambda ()
+                (add-hook 'after-save-hook #'my/run-kaocha-file-on-save nil t)))))
+
+
+
+
+#+end_src
+
+** Markdown Xwidget
+#+begin_src emacs-lisp
+(use-package markdown-xwidget
+  :after markdown-mode
+  :straight (markdown-xwidget
+             :type git
+             :host github
+             :repo "cfclrk/markdown-xwidget"
+             :files (:defaults "resources"))
+  :config (setq markdown-xwidget-github-theme "light"))
+#+end_src
+
+** Disable mouse
+#+begin_src emacs-lisp
+(use-package disable-mouse
+  :straight t
+  :config (global-disable-mouse-mode 1))
+#+end_src
+
+** 1Password Helper Functions
+#+begin_src emacs-lisp
+;;; --- 1Password helpers (stdin, via shell; single-prompt + debug) -----------
+(require 'subr-x)
+(require 'json)
+
+(defvar srk/op-shorthand nil
+  "If non-nil, use token-based signin: `op signin <SHORTHAND> --raw`.
+If nil, rely on a single biometric prompt triggered by `op inject`.")
+
+;; Exact binaries so 1Password Authorized Apps can match the paths precisely.
+(defvar srk/op-bin
+  (if (eq system-type 'darwin)
+      (or (executable-find "op") "op")
+    "host-op")
+  "Absolute path to the 1Password CLI binary (falls back to 'op' on Mac, 'host-op' on Linux).")
+
+(defvar srk/op-shell-path
+  (or (executable-find (file-name-nondirectory (or (getenv "SHELL") shell-file-name)))
+      (getenv "SHELL") shell-file-name "/bin/sh")
+  "Shell used to proxy 1Password CLI calls (matches Authorized Apps).")
+
+(defvar srk/op-debug nil
+  "When non-nil, log detailed diagnostics to *Messages*.")
+
+(defun srk/op--dbg (fmt &rest args)
+  (when srk/op-debug
+    (apply #'message (concat "srk/op: " fmt) args)))
+
+(defun srk/op--shell-cmd-capture (fmt &rest args)
+  "Run command via shell; capture stdout+stderr. Returns (STATUS . OUTPUT)."
+  (let* ((cmd (apply #'format fmt args))
+         (buf (generate-new-buffer " *srk-op*"))
+         status out)
+    (srk/op--dbg "using shell: %s" srk/op-shell-path)
+    (srk/op--dbg "command: %s" cmd)
+    (unwind-protect
+        (progn
+          (setq status (call-process srk/op-shell-path nil buf nil "-c"
+                                     (concat cmd " 2>&1")))
+          (with-current-buffer buf (setq out (buffer-string))))
+      (kill-buffer buf))
+    (cons status out)))
+
+(defun srk/op--signin-token ()
+  "Sign in using `srk/op-shorthand` and export OP_SESSION_<shorthand>."
+  (unless srk/op-shorthand
+    (error "srk/op--signin-token: srk/op-shorthand is nil"))
+  (let* ((env-name (format "OP_SESSION_%s" srk/op-shorthand))
+         (already (getenv env-name)))
+    (if (and already (not (string-empty-p already)))
+        t
+      (cl-destructuring-bind (st . out)
+          (srk/op--shell-cmd-capture "%s signin %s --raw"
+                                     (shell-quote-argument srk/op-bin)
+                                     (shell-quote-argument srk/op-shorthand))
+        (if (/= st 0)
+            (error "op signin failed: %s" (string-trim out))
+          (setenv env-name (string-trim out))
+          t)))))
+
+(defvar srk/op-warn-on-missing t
+  "When non-nil, show a warning listing any secrets that failed to resolve.")
+
+(defun srk/op--alist-keys->strings (alist)
+  "Return a copy of ALIST with all keys converted to strings."
+  (mapcar (lambda (kv)
+            (let ((k (car kv)) (v (cdr kv)))
+              (cons (if (stringp k) k (format "%s" k)) v)))
+          alist))
+
+(defun srk/op--get (alias secrets)
+  "Robust getter for SECRETS alist keyed by strings or symbols."
+  (or (alist-get alias secrets nil nil #'equal)
+      (alist-get (intern alias) secrets nil nil #'eq)
+      (cdr (assoc alias secrets))
+      (let ((sym (intern alias))) (cdr (assoc sym secrets)))))
+
+(defun srk/op-inject-many-secrets (specs &optional quiet)
+  "Resolve multiple secrets with ONE `op inject` call using STDIN (no files).
+SPECS is a list of (ALIAS VAULT ITEM FIELD). Returns an alist (ALIAS . VALUE).
+
+Behavior:
+  • If `srk/op-shorthand` is set, pre-auth via `signin --raw` (token mode).
+  • If not set, do NOT pre-auth (biometric mode) — let `op inject` prompt once.
+  • On failure in token mode, probe each ref with `op read` (no extra biometrics).
+  • On failure in biometric mode, DO NOT fan out; just warn."
+  (let* ((pairs (mapcar (lambda (spec)
+                          (cl-destructuring-bind (alias vault item field) spec
+                            (cons alias (format "op://%s/%s/%s" vault item field))))
+                        specs))
+         (template (json-encode pairs))
+         (token-mode (and srk/op-shorthand t))
+         status out)
+    (srk/op--dbg "template JSON: %s" template)
+    (when token-mode
+      (condition-case err
+          (srk/op--signin-token)
+        (error (srk/op--dbg "signin error: %s" (error-message-string err)))))
+
+    ;; Feed JSON via STDIN to `op inject --force`, through your shell.
+    ;; We pipe stdin using: (call-process-region) -> shell "cat | op inject --force".
+    (let* ((cmd (format "cat | %s inject --force 2>&1"
+                        (shell-quote-argument srk/op-bin)))
+           (outbuf (generate-new-buffer " *srk-op-out*")))
+      (unwind-protect
+          (with-temp-buffer
+            (insert template)
+            (setq status (call-process-region
+                          (point-min) (point-max)
+                          srk/op-shell-path ;; program
+                          nil               ;; delete?
+                          outbuf            ;; output buffer
+                          nil               ;; display
+                          "-c" cmd))
+            (with-current-buffer outbuf
+              (setq out (buffer-string))))
+        (kill-buffer outbuf)))
+    (srk/op--dbg "inject exit=%s\ninject out:\n%s" status (string-trim out))
+
+    (if (= status 0)
+        ;; Success → parse stdout (already contains injected JSON)
+        (let* ((raw (ignore-errors (json-parse-string out :object-type 'alist :array-type 'list))))
+          (unless raw
+            (when (and srk/op-warn-on-missing (not quiet))
+              (display-warning 'srk/op "op inject returned non-JSON output." :warning)))
+          (srk/op--alist-keys->strings (or raw '())))
+      ;; Failure:
+      (if token-mode
+          ;; Token mode: safe to diagnose per-ref (no extra prompts)
+          (let (successes failures)
+            (dolist (spec specs)
+              (cl-destructuring-bind (alias vault item field) spec
+                (let* ((op-url (format "op://%s/%s/%s" vault item field))
+                       (res (srk/op--shell-cmd-capture "%s read --no-newline %s"
+                                                       (shell-quote-argument srk/op-bin)
+                                                       (shell-quote-argument op-url)))
+                       (code (car res)) (txt (cdr res)))
+                  (srk/op--dbg "read %s exit=%s out=%s" op-url code (string-trim txt))
+                  (if (= code 0)
+                      (push (cons alias (string-trim txt)) successes)
+                    (push (list alias op-url (string-trim (or txt ""))) failures)))))
+            (when (and srk/op-warn-on-missing failures (not quiet))
+              (display-warning
+               'srk/op
+               (concat
+                "1Password: some secrets failed to resolve:\n"
+                (mapconcat
+                 (lambda (e)
+                   (format " - %s (%s)\n   %s" (nth 0 e) (nth 1 e) (nth 2 e)))
+                 (nreverse failures) "\n"))
+               :warning))
+            (nreverse successes))
+        ;; Biometric mode: don't fan out (would cause N prompts)
+        (progn
+          (when (and srk/op-warn-on-missing (not quiet))
+            (display-warning 'srk/op
+                             (format "1Password: op inject failed (exit %s):\n%s"
+                                     status (string-trim out))
+                             :warning))
+          nil)))))
+
+
+
+#+end_src
+
+** PDF-tools
+remember to install dependancies
+"brew install autoconf automake libtool"
+"brew install poppler"
+
+#+begin_src emacs-lisp
+(use-package pdf-tools
+  :straight t
+  :config (setq pdf-view-midnight-colors '("#f8f8f2" . "#282a36"))
+  (pdf-tools-install)
+  :hook (pdf-view-mode . pdf-view-midnight-minor-mode))
+#+end_src
+** rainbow-delimiters
+#+begin_src emacs-lisp
+(use-package rainbow-delimiters
+  :straight t
+  :defer t
+  :init
+  (progn
+    (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)))
+#+end_src
+
+** Coding and scripting
+*** Line numbers
+Set on line numbers in prog mode
+
+(add-hook 'prog-mode-hook 'linum-mode)
+
+*** Yasnippet
+Yet another snippet extension for Emacs https://github.com/joaotavora/yasnippet/tree/d91dd66f2aed9bbaef32813a68b105ea77e83890
+
+#+begin_src emacs-lisp
+(use-package yasnippet-snippets
+  :straight t)
+
+(use-package yasnippet
+  :straight t)
+#+end_src
+
+*** Flycheck mode
+A major mode for editing Nix expressions (.nix files).  See the Nix manual for more information available at https://nixos.org/nix/manual/.
+#+begin_src emacs-lisp
+(use-package flycheck
+  :straight t 
+  :init (global-flycheck-mode))
+#+end_src
+
+*** Nix mode
+A major mode for editing Nix expressions (.nix files).  See the Nix manual for more information available at https://nixos.org/nix/manual/.
+#+begin_src emacs-lisp  
+(use-package nix-mode
+  :straight t )
+#+end_src
+
+*** Emmet mode
+Unfold CSS-selector-like expressions to markup. Intended to be used with sgml-like languages; xml, html, xhtml, xsl, etc.
+
+See `emmet-mode' for more information.
+
+Copy emmet-mode.el to your load-path and add to your .emacs:
+
+(require 'emmet-mode)
+
+Example setup:
+
+(add-to-list 'load-path "~/Emacs/emmet/")
+(require 'emmet-mode)
+(add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
+(add-hook 'html-mode-hook 'emmet-mode)
+(add-hook 'css-mode-hook  'emmet-mode)
+
+Enable the minor mode with M-x emmet-mode.
+
+See ``Test cases'' section for a complete set of expression types.
+
+If you are hacking on this project, eval (emmet-test-cases) to ensure that your changes have not broken anything. Feel free to add new test cases if you add new features.
+
+#+begin_src emacs-lisp
+;;(use-package emmet-mode
+;;  :straight t )
+#+end_src
+
+*** Htmlize
+This package converts the buffer text and the associated decorations to HTML.
+
+#+begin_src emacs-lisp
+(use-package htmlize
+  :straight t 
+  :init)
+#+end_src
+
+*** Typescript
+Typescript Interactive Development Environment
+
+#+begin_src emacs-lisp
+;; (use-package prettier-js
+;;   :straight t 
+;;   :init (add-hook 'tide-mode-hook 'prettier-js-mode))
+
+(use-package js2-mode
+  :straight t )
+
+(use-package rjsx-mode
+  :straight t 
+  :mode(("\\.js\\'" . rjsx-mode)
+	("\\.jsx\\'" . rjsx-mode)
+	("\\.ts\\'" . rjsx-mode)
+	("\\.tsx\\'" . rjsx-mode))
+  :init
+  ;;    (add-hook 'rjsx-mode-hook 'prettier-js-mode)
+  (add-hook 'rjsx-mode-hook 'tide-mode))
+
+(use-package web-mode
+  :straight t 
+  :custom
+  (web-mode-markup-indent-offset 2)
+  (web-mode-css-indent-offset 2)
+  (web-mode-code-indent-offset 2))
+
+(defun setup-tide-mode ()
+  (interactive)
+  (tide-setup)
+  (flycheck-mode +1)
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (eldoc-mode +1)
+  (tide-hl-identifier-mode +1)
+  (company-mode +1)
+  (aggressive-indent-mode nil))
+
+(use-package tide
+  :straight t 
+  :config
+  (add-hook 'typescript-mode-hook #'setup-tide-mode)
+  (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
+  (add-hook 'web-mode-hook
+	    (lambda ()
+	      (when (string-equal "tsx" (file-name-extension buffer-file-name))
+		(setup-tide-mode))))
+  (flycheck-add-mode 'typescript-tslint 'web-mode))
+#+end_src
+*** Markdown mode
+#+begin_src emacs-lisp
+
+(use-package markdown-mode
+  :straight t)
+
+#+end_src
+
+*** R on emacs
+#+begin_src emacs-lisp
+;; rstats on emacs
+#+end_src
+
+**** ESS
+Emacs Speaks Statistics (ESS) is a package designed to support editing of scripts and interaction with various statistical analysis programs such as R, S-Plus, SAS, Stata and OpenBUGS/JAGS. For more details please visit ESS home page at https://ess.r-project.org/
+#+begin_src emacs-lisp
+;; (setq load-path (cons "/usr/share/emacs/site-lisp/ess" load-path))
+;; (load "/usr/share/emacs/site-lisp/ess/ess-site")
+
+
+(use-package ess
+  :straight t 
+  :init (require 'ess-site))
+#+end_src
+**** GralVM R
+#+begin_src emacs-lisp
+;;(setq inferior-R-program-name "/usr/lib/jvm/java-8-graal/bin/R")
+#+end_src
+
+*** Clojure
+**** Clj Kondo
+Clj linter
+#+begin_src emacs-lisp
+(use-package flycheck-clj-kondo
+  :straight t )
+#+end_src
+
+**** Clojure mode
+Provides a Clojure interactive development environment for Emacs, built on top of nREPL.
+
+#+begin_src emacs-lisp
+(use-package idle-highlight-mode
+  :straight t)
+
+(use-package clojure-mode
+  :straight t
+  :mode (("\\.clj\\'" . clojure-mode)
+         ("\\.edn\\'" . clojure-mode))
+  :init
+  (add-hook 'clojure-mode-hook 'clojure-pretty-lambda-mode)
+  (add-hook 'clojure-mode-hook #'yas-minor-mode)         
+  (add-hook 'clojure-mode-hook #'display-line-numbers-mode)             
+  (add-hook 'clojure-mode-hook #'subword-mode)           
+  (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
+  (add-hook 'clojure-mode-hook #'eldoc-mode)             
+  ;;(add-hook 'clojure-mode-hook #'idle-highlight-mode)
+  :config
+  (require 'flycheck-clj-kondo))
+
+(defun my-clojure-mode-hook ()
+  (hs-minor-mode)
+  (local-set-key (kbd "<backtab>") 'hs-show-all) ;; ctrl+shift+=
+  (local-set-key (kbd "C-S-<iso-lefttab>") 'hs-hide-all)   ;; ctrl+shift+-
+  (local-set-key (kbd "C-S-<return>") 'hs-hide-level) 
+  (local-set-key (kbd "TAB") 'hs-toggle-hiding)
+  (local-set-key clojure-mode-map (kbd "<S-return>") 'clerk-show))
+
+(add-hook 'clojure-mode-hook 'my-clojure-mode-hook)
+
+
+
+#+end_src
+**** Eval to var (custom funcitons)
+Custom (personal) helper functions for cider and clojure, where one keybinding lets you set a symbol and another evaluates the last sexp and binds it as a var to that symbol. Helper for debugging and REPL driven dev.
+
+#+begin_src emacs-lisp
+
+(defun eval-last-sexp-to-var ()
+  "Evaluates last sexp and binds it to symbol stored in 'saved-symbol.
+    saved-symbol defaults to 'temp"
+  (interactive)
+  (if (not saved_symbol) (setq saved-symbol "temp"))
+  (cider-interactive-eval
+   (format (concat "(def " saved-symbol " %s)")
+	   (cider-last-sexp))))
+
+
+
+
+(defun srk/save-all-then-refresh-ns ()
+  "Save all modified file-visiting buffers and then run =cider-ns-refresh=."
+  (interactive)
+  (save-some-buffers t) ;; t means save all file-visiting buffers silently
+  (if (fboundp 'cider-ns-refresh)
+      (progn
+        (message "Refreshing namespaces...")
+        (cider-ns-refresh)
+        (message "Refreshing namespaces... done."))
+    (message "cider-ns-refresh is not available.")))
+
+;;(define-key cider-mode-map(kbd "C-c C-b") #'srk/save-all-then-refresh-ns)
+
+(defun set-last-sexp-to-symbol ()
+  "Saves the last sexp to 'saved-symbol for use with eval-last-sexp-to-var"
+  (interactive)
+  (setq saved-symbol (cider-last-sexp)))
+
+
+
+#+end_src
+
+**** Cider
+Provides a Clojure interactive development environment for Emacs, built on top of nREPL.
+
+#+begin_src emacs-lisp
+(use-package cider
+  :straight t 
+  :init
+  (add-hook 'cider-mode-hook #'clj-refactor-mode)
+  (add-hook 'cider-repl-mode-hook #'company-mode)
+  (add-hook 'cider-mode-hook #'company-mode)
+
+  :diminish subword-mode
+  :bind (("M-o" . company-complete)
+  	 ("C-c C-RET" . per/cider-pprint-eval-sexp-up-to-point)
+  	 ("C-c C-b" . cider-load-buffer)
+  	 ("C-c c" . eval-last-sexp-to-var)
+	 ;;("C-c C-b" . srk/save-all-then-refresh-ns)
+  	 ("C-c w" . set-last-sexp-to-symbol))
+  
+  :config
+  (setq nrepl-log-messages t                  
+        cider-repl-display-in-current-window t
+        cider-repl-use-clojure-font-lock t    
+        cider-prompt-save-file-on-load 'always-save
+        cider-font-lock-dynamically '(macro core function var)
+        nrepl-hide-special-buffers t            
+        cider-overlays-use-font-lock t
+    	cider-clojure-cli-aliases ":user/dev:user/flowstorm:user/fs-web-plugin"
+    	cider-download-java-sources t
+    	cider-repl-use-pretty-printing t)         
+  (cider-repl-toggle-pretty-printing))
+
+;; (define-key cider-mode-map(kbd "C-c C-b") #'cider-eval-buffer)
+
+(defun srk/eval-cider-eval-register-to-var ()
+  (interactive)
+  (let ((eval-string (get-register cider-eval-register))
+    	(var-name (read-from-minibuffer "Enter variable name: ")))
+    (let ((cider-code-string (concat "(def " var-name " " eval-string ")")))
+      (cider-interactive-eval cider-code-string))))
+
+(defun pprint-cider-eval-sexp-up-to-point ()
+  "Evaluate the current sexp form up to point.
+
+      - It finds the code between the point and the start of the sexp expression;
+      - It balances this bit of code by closing the expression;
+      - It evaluates and prints the resulting code using `cider--pprint-eval-form'."
+  (interactive)
+  (let* ((beg-of-sexp (save-excursion (up-list) (backward-list) (point)))
+         (beg-delimiter (save-excursion (up-list) (backward-list) (char-after)))
+         (beg-set?  (save-excursion (up-list) (backward-list) (char-before)))
+         (code (buffer-substring-no-properties beg-of-sexp (point)))
+         (code (if (= beg-set? ?#) (concat (list beg-set?) code) code))
+         (code (concat code (list (cider--matching-delimiter beg-delimiter)))))
+    (cider--pprint-eval-form code)))
+
+(setq safe-local-variable-values
+      '((eval when
+    	      (fboundp 'rainbow-mode)
+    	      (rainbow-mode 1))
+    	(eval progn
+    	      (make-variable-buffer-local 'cider-jack-in-nrepl-middlewares)
+    	      (add-to-list 'cider-jack-in-nrepl-middlewares "shadow.cljs.devtools.server.nrepl/middleware"))
+    	(cider-cljs-lein-repl . "(do (user/run) (user/browser-repl))")
+    	(cider-refresh-after-fn . "com.stuartsierra.component.repl/start")
+    	(cider-refresh-before-fn . "com.stuartsierra.component.repl/stop")))
+
+(defun per/cider-pprint-eval-sexp-up-to-point ()
+  "Evaluate the current sexp form up to point.
+    - It finds the code between the point and the start of the sexp expression;
+    - It balances this bit of code by closing the expression;
+    - It evaluates and prints the resulting code using `cider--pprint-eval-form'."
+  (interactive)
+  (let* ((beg-of-sexp (save-excursion (up-list) (backward-list) (point)))
+         (beg-delimiter (save-excursion (up-list) (backward-list) (char-after)))
+         (beg-set?  (save-excursion (up-list) (backward-list) (char-before)))
+
+    	 (code (buffer-substring-no-properties beg-of-sexp (point)))
+         (code (if (= beg-set? ?#) (concat (list beg-set?) code) code))
+         (code (concat code (list (cider--matching-delimiter beg-delimiter)))))
+    (cider--pprint-eval-form code)))
+
+(advice-add 'risky-local-variable-p :override #'ignore)
+
+(when (file-exists-p "/Users/samikallinen/projects/clj-dirty-bg/")
+  (use-package clj-dirty-bg
+     :straight (:type git :local-repo "/Users/samikallinen/projects/clj-dirty-bg/")))
+
+(defun srk/cider-eval-last-sexp-to-kill-ring ()
+  (interactive)
+  (kill-new  (car (call-interactively 'cider-eval-last-sexp))))
+
+  #+end_src
+
+**** Org-mode clojure
+#+begin_src emacs-lisp
+(setq ob-clojure-literate-auto-jackin-p t)
+
+(setq ob-clojure-literate-project-location
+      (expand-file-name (concat user-emacs-directory "Org-mode/")))
+(setq ob-clojure-literate-default-session "*cider-repl ob-clojure*")
+
+(define-key org-babel-map (kbd "M-c") 'ob-clojure-literate-mode)
+
+(setq ob-clojure-literate-auto-jackin-p t)
+
+
+
+#+end_src
+
+**** clj-refactor
+#+begin_src emacs-lisp
+(use-package clj-refactor
+  :straight t 
+  :init
+  (add-hook 'clojure-mode-hook 'clj-refactor-mode)
+  (add-hook 'emacs-lisp-mode-hook #'rainbow-delimiters-mode)
+  :config
+  ;; Configure the Clojure Refactoring prefix:
+  (cljr-add-keybindings-with-prefix "C-c .")
+  :diminish clj-refactor-mode)
+
+;; (use-package clj-refactor
+;;   :straight t 
+;;   :config
+;;   (add-hook 'clojure-mode-hook #'clj-refactor-mode)
+;;   (add-hook 'emacs-lisp-mode-hook #'rainbow-delimiters-mode))
+#+end_src
+
+**** paredit
+#+begin_src emacs-lisp
+;; Install, paredit, enable in elisp and Clojure modes
+(use-package paredit
+  :diminish paredit-mode
+  :init
+  (add-hook 'emacs-lisp-mode-hook #'enable-paredit-mode)
+  (add-hook 'clojure-mode-hook #'enable-paredit-mode)
+  :config
+  (define-key paredit-mode-map (kbd "M-[") 'paredit-wrap-square)
+  (define-key paredit-mode-map (kbd "M-{") 'paredit-wrap-curly))
+#+end_src
+
+**** missing reverse traspose
+https://emacs.stackexchange.com/questions/12799/move-form-up-and-down-on-paredit-mode
+#+begin_src emacs-lisp
+;; Install, paredit, enable in elisp and Clojure modes
+(defun reverse-transpose-sexps (arg)
+  (interactive "*p")
+  (transpose-sexps (- arg))
+  ;; when transpose-sexps can no longer transpose, it throws an error and code
+  ;; below this line won't be executed. So, we don't have to worry about side
+  ;; effects of backward-sexp and forward-sexp.
+  ;;(backward-sexp (1+ arg))
+  ;;(forward-sexp 1)
+  )
+
+(global-set-key (kbd "C-M-y") 'reverse-transpose-sexps)
+
+#+end_src
+
+#+RESULTS:
+: reverse-transpose-sexps
+
+**** rainbow-blocks
+Rainbow-blocks highlights blocks made of parentheses, brackets, and
+braces according to their depth. Each successive level is
+highlighted in a different color. This makes it easy to orient
+yourself in the code, and tell which statements are at a given
+level.
+#+begin_src emacs-lisp
+(use-package rainbow-blocks
+  :straight t 
+  :defer t
+  :init
+  (progn
+    ;;(add-hook 'clojure-mode-hook #'rainbow-blocks-mode)
+    ))
+#+end_src
+
+**** Fill column indicator
+#+begin_src emacs-lisp
+(use-package fill-column-indicator
+  :straight t 
+  :init)
+#+end_src
+**** Toggle chestnut and figwheel
+Minor mode to aggressively keep your code always indented
+#+begin_src emacs-lisp
+
+(setq cider-cljs-lein-repl
+      "(cond
+    (and (resolve 'user/run) (resolve 'user/browser-repl)) ;; Chestnut projects
+    (eval '(do (user/go)
+    (user/cljs-repl)))
+
+    (try
+    (require 'figwheel-sidecar.repl-api)
+    (resolve 'figwheel-sidecar.repl-api/start-figwheel!)
+    (catch Throwable _))
+    (eval '(do (figwheel-sidecar.repl-api/start-figwheel!)
+    (figwheel-sidecar.repl-api/cljs-repl)))
+
+    (try
+    (require 'cemerick.piggieback)
+    (resolve 'cemerick.piggieback/cljs-repl)
+    (catch Throwable _))
+    (eval '(cemerick.piggieback/cljs-repl (cljs.repl.rhino/repl-env)))
+
+    :else
+    (throw (ex-info \"Failed to initialize CLJS repl. Add com.cemerick/piggieback and optionally figwheel-sidecar to your project.\" {})))")
+
+(setq cider-cljs-lein-repl "(do (use 'figwheel-sidecar.repl-api) (start-figwheel!) (cljs-repl))")
+#+end_src
+**** Clojure Pretty lambda
+A modified version of pretty-lambdada.el which instead of changing Emacs Lisps's `lambda` keyword to the greek letter, changes the Clojure anonymous keyword `fn`. Whenever fn occurs as a separate word and followed by an opening bracket, it is displayed as the greek letter lambda.
+
+#+begin_src emacs-lisp
+
+(use-package clojure-pretty-lambda
+  :straight (clojure-pretty-lambda :type git :host github :repo "yonkornilov/clojure-pretty-lambda.el"))
+
+#+end_src
+
+*** Polymode
+Extensible framework for multiple major modes
+#+begin_src emacs-lisp
+(use-package polymode
+  :straight t )
+
+#+end_src
+
+**** poly-R
+#+begin_src emacs-lisp
+(use-package poly-R
+  :straight t 
+  :init)
+#+end_src
+
+**** Poly-markdown
+#+begin_src emacs-lisp
+(use-package poly-markdown
+  :straight t 
+  :init)
+#+end_src
+
+**** Markdown-mode config
+#+begin_src emacs-lisp
+    ;;; Markdown mode
+(autoload 'markdown-mode "markdown-mode" "Major mode for editing Markdown files" t)
+(setq auto-mode-alist (cons '("\\.markdown" . markdown-mode) auto-mode-alist))
+(setq auto-mode-alist (cons '("\\.md" . markdown-mode) auto-mode-alist))
+(setq auto-mode-alist (cons '("\\.ronn?" . markdown-mode) auto-mode-alist))
+(add-to-list 'auto-mode-alist '("\\.Rmd" . poly-markdown+r-mode))
+#+end_src
+
+*** Cider Storm
+#+begin_src emacs-lisp
+  (use-package cider-storm
+    :after cider
+    :straight (cider-storm :type git :host github :repo "flow-storm/cider-storm")
+    :config (define-key cider-mode-map (kbd "C-c C-f") 'cider-storm-map))
+
+#+end_src
+*** KP system
+#+begin_src emacs-lisp
+
+(transient-define-prefix  kp-start ()
+  "Starting panorama"
+  :info-manual ""
+  ["Arguments"
+   ("-f" "Start with flow storm" ":user/flowstorm")
+   ("-s" "Start cljs" ":cljs")
+   ("-b" "Start clj&cljs" ":both")
+
+   ]
+  ["Commands"
+   ("j" "Jack in (default: clj)" kp-start*)]
+  [("q" "Quit" transient-quit-one)])
+
+(defun kp-start* (&optional args)
+  (interactive (list (transient-args 'kp-start)))
+  (let ((f (cond ((member ":cljs" args) 'cider-jack-in-cljs)
+                 ((member ":both" args) 'cider-jack-in-clj&cljs)
+                 (t 'cider-jack-in-clj))))
+    (cond ((member ":user/flowstorm" args)
+           (progn
+             (unless (string-match-p ":flowstorm" cider-clojure-cli-aliases)
+               (setq-local cider-clojure-cli-aliases
+                           (concat cider-clojure-cli-aliases ":user/flowstorm")))
+	     (setenv "KP_STORM_SHADOWCLJS_PRELOAD" "flow-storm.storm-preload")
+             (add-to-list 'cider-jack-in-nrepl-middlewares "flow-storm.nrepl.middleware/wrap-flow-storm")
+             (add-to-list 'cider-jack-in-nrepl-middlewares '("refactor-nrepl.middleware/wrap-refactor" :predicate cljr--inject-middleware-p))
+             (add-to-list 'cider-jack-in-nrepl-middlewares "cider.nrepl/cider-middleware")))
+	  ((not (member ":user/flowstorm" args))
+           (when (string-match-p ":flowstorm" cider-clojure-cli-aliases)
+             (setq-local cider-clojure-cli-aliases
+                         (replace-regexp-in-string ":user/flowstorm" "" cider-clojure-cli-aliases)))
+	   (setenv "KP_STORM_SHADOWCLJS_PRELOAD")
+           (setq cider-jack-in-nrepl-middlewares (remove "flow-storm.nrepl.middleware/wrap-flow-storm" cider-jack-in-nrepl-middlewares))
+           (setq cider-jack-in-nrepl-middlewares (remove '("refactor-nrepl.middleware/wrap-refactor" :predicate cljr--inject-middleware-p) cider-jack-in-nrepl-middlewares))
+           (setq cider-jack-in-nrepl-middlewares (remove "cider.nrepl/cider-middleware" cider-jack-in-nrepl-middlewares))))
+    ;; todo add universal argument
+    (funcall f nil)))
+#+end_src
+
+*** Clojure emacs utilities
+#+begin_src emacs-lisp
+(require 'cider)
+(require 'hydra)
+;;;;;;;;;;;;:;;
+;; Temporary ;;
+;;;;;;;;;;;;;;;
+
+(defun srk/cider-storm-stop ()
+  (interactive)
+  (let* ((current-ns (cider-current-ns))
+    	 (form (cider-last-sexp))
+    	 (clj-cmd (format "(do (require 'flow-storm.runtime.debuggers-api) (flow-storm.runtime.debuggers-api/set-recording false))" form)))
+    (cider-interactive-eval clj-cmd nil nil `(("ns" ,current-ns)))))
+
+(defun srk/cider-storm-start ()
+  (interactive)
+  (let* ((current-ns (cider-current-ns))
+    	 (form (cider-last-sexp))
+    	 (clj-cmd (format "(do (require 'flow-storm.runtime.debuggers-api) (flow-storm.runtime.debuggers-api/set-recording true))" form)))
+    (cider-interactive-eval clj-cmd nil nil `(("ns" ,current-ns)))))
+
+(defun srk/cider-storm-recording? ()
+  (interactive)
+  (let* ((current-ns (cider-current-ns))
+    	 (form (cider-last-sexp))
+    	 (clj-cmd (format "(do (require 'flow-storm.tracer) (flow-storm.tracer/recording?))" form)))
+    (cider-interactive-eval clj-cmd nil nil `(("ns" ,current-ns)))))
+
+;;;;;;;;;;;;;;;;;;;
+;; General tools ;;
+;;;;;;;;;;;;;;;;;;;
+
+(defun clj-dev-tool-java-decompile ()
+  (interactive)
+  (let* ((current-ns (cider-current-ns))
+    	 (form (cider-last-sexp))
+    	 (clj-cmd (format "(do (require 'clj-java-decompiler.core) (clj-java-decompiler.core/decompile %s))" form)))
+    (cider-interactive-eval clj-cmd nil nil `(("ns" ,current-ns)))))
+
+(defun clj-dev-tool-bytecode-disassemble ()
+  (interactive)
+  (let* ((current-ns (cider-current-ns))
+    	 (form (cider-last-sexp))
+    	 (clj-cmd (format "(do (require 'clj-java-decompiler.core) (clj-java-decompiler.core/disassemble %s))" form)))
+    (cider-interactive-eval clj-cmd nil nil `(("ns" ,current-ns)))))
+
+(defun clj-dev-tool-bench ()
+  (interactive)
+  (let* ((current-ns (cider-current-ns))
+    	 (form (cider-last-sexp))
+    	 (clj-cmd (format "(do (require 'criterium.core) (criterium.core/quick-bench %s))" form)))
+    (cider-interactive-eval clj-cmd nil nil `(("ns" ,current-ns)))))
+
+(defun clj-dev-tool-profile ()
+  (interactive)
+  (let* ((current-ns (cider-current-ns))
+    	 (form (cider-last-sexp))
+    	 (clj-cmd (format "(do (require 'clj-async-profiler.core) (clj-async-profiler.core/profile %s))" form)))
+    (cider-interactive-eval clj-cmd nqil nil `(("ns" ,current-ns)))
+    (shell-command "firefox \"file:///tmp/clj-async-profiler/results/\"")))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Cider project hydras ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmacro cider-project-hydra (hy-cmd-name hy-cmd-title &rest menu-entries)
+  (let* ((commands-defs (mapcar (lambda (entry)
+    				  (destructuring-bind (k ecmd des ccmd) entry
+    				    `(defun ,ecmd () (interactive) (cider-interactive-eval ,ccmd))))
+    				menu-entries))
+    	 (hy-triplets (mapcar (lambda (entry)
+    				(destructuring-bind (k ecmd des ccmd) entry
+    				  `(,k ,ecmd ,des)))
+    			      menu-entries)))
+    `(progn
+       ,@commands-defs
+       (defhydra ,hy-cmd-name ()
+    	 ,hy-cmd-title
+    	 ,@hy-triplets))))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; FlowStorm dev menu ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; (cider-project-hydra
+
+;;  flow-storm-dev-menu "FlowStrom dev menu"
+
+;;  ("s" flow-storm-stop         "Stop"       "(dev/stop)")
+;;  ("l" flow-storm-start-local  "Run local"  "(dev/start-local)")
+;;  ("r" flow-storm-start-remote "Run remote" "(dev/start-remote)")
+;;  ("R" flow-storm-refresh      "Refresh"    "(dev/refresh)"))
+
+;;;;;;;;;;;;;;;;;;;;;
+;; Hansel dev menu ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+;; (cider-project-hydra
+
+;;  hansel-dev-menu "Hansel dev menu"
+
+;;  ("R" hansel-refresh "Refresh" "(dev/refresh)"))
+
+
+;;;;;;;;;;;;;;;;;;;;;;
+;; Clindex dev menu ;;
+;;;;;;;;;;;;;;;;;;;;;;
+
+;; (cider-project-hydra
+
+;;  clindex-dev-menu "Clindex dev menu"
+
+;;  ("R" clindex-refresh "Refresh" "(workbench/refresh)"))
+
+;;;;;;;;;;;;;;;;;;;;
+;; Menu utilities ;;
+;;;;;;;;;;;;;;;;;;;;
+
+;; (defvar clojure-dev-menu-name nil)
+
+;; (defun clojure-dev-menu-show ()
+;;   (interactive)
+;;   (let ((menu-name (format "%s/body" clojure-dev-menu-name)))
+;; 	(funcall (intern menu-name))))
+
+;; (defun cider-tap-last-and-show-debugger ()
+;;   (interactive)
+
+;;   (cider-interactive-eval "(tap> *1)")
+;;   (shell-command "i3-msg '[title=\"Flowstorm debugger\"] scratchpad show'"))
+
+;; (define-key clojure-mode-map (kbd "<f5>") 'clojure-dev-menu-show)
+;; (define-key cider-repl-mode-map (kbd "<f5>") 'clojure-dev-menu-show)
+;; (define-key clojure-mode-map (kbd "<f6>") 'my-clojure-dev-tools/body)
+;;(define-key cider-flow-storm-map (kbd "C-c C-f t") 'cider-tap-last-and-show-debugger)
+#+end_src
+** Gptel
+#+begin_src emacs-lisp
+  (require 'cl-lib)
+  (require 'cider)
+
+  ;; gptel requires a newer transient than the built ins
+  (use-package transient
+    :straight t
+    :demand t)
+
+  (defun srk/gptel-minibuffer-query ()
+    "Prompt in minibuffer and send the question to GPT."
+    (interactive)
+    (let* ((prompt (read-string "Enter your question: ")))
+      (gptel-request prompt
+        :callback (lambda (response _info)
+                    (message "%s" response)))))
+
+  (defun srk/gptel-with-prompt (beg end)
+    "Send selected text to GPT with a custom prompt."
+    (interactive "r")
+    (let* ((selection (buffer-substring-no-properties beg end))
+           (prompt (read-string "What should I do with the selection? "))
+           (full-prompt (format "%s:\n\n%s" prompt selection)))
+      (gptel-request full-prompt
+        :callback (lambda (response _info)
+                    (message "%s" response)))))
+
+  (defun srk/rewrite-region-idiomatic (lang begin end)
+    "Rewrite selected region into idiomatic LANG and replace the selection."
+    (interactive
+     (progn
+       (unless (use-region-p) (user-error "No region active"))
+       (list (completing-read "Language: " '("English" "Finnish" "Swedish" "Spanish") nil t)
+             (region-beginning) (region-end))))
+    (barf-if-buffer-read-only)
+    (let ((mb (copy-marker begin))
+          (me (copy-marker end)))
+      (gptel-request
+  	(buffer-substring-no-properties begin end)
+        :system (format "You are a helpful writing assistant. Rewrite the following into idiomatic %s, and return only the rewritten text."
+                        lang)
+        :callback
+        `(lambda (response _info)
+           (save-excursion
+             (delete-region ,mb ,me)
+             (goto-char ,mb)
+             (insert response)
+             (set-marker ,mb nil)
+             (set-marker ,me nil))))))
+
+  (defun srk/rewrite-to-idiomatic-english (b e) (interactive "r") (srk/rewrite-region-idiomatic "English" b e))
+  (defun srk/rewrite-to-idiomatic-finnish (b e) (interactive "r") (srk/rewrite-region-idiomatic "Finnish" b e))
+  (defun srk/rewrite-to-idiomatic-swedish (b e) (interactive "r") (srk/rewrite-region-idiomatic "Swedish" b e))
+  (defun srk/rewrite-to-idiomatic-spanish (b e) (interactive "r") (srk/rewrite-region-idiomatic "Spanish" b e))
+
+
+  (defun dbj/clj-mcp-prompts ()
+    "List available prompts from MCP server 'clojure-mcp', let user choose one,
+    and insert the full prompt content at point."
+    (interactive)
+    (let ((conn (gethash "clojure-mcp" mcp-server-connections))
+          (target-buffer (current-buffer)))
+      (unless conn (user-error "No MCP connection named 'clojure-mcp'"))
+      (mcp-async-list-prompts
+       conn
+       (lambda (conn prompts)
+         (let* ((names (mapcar (lambda (p) (plist-get p :name)) prompts))
+                (choice (completing-read "Select prompt: " names nil t)))
+           (message "choice: %s" choice)
+           (mcp-async-get-prompt
+            conn
+            choice
+            nil  ; you can pass params here, e.g. '(:temperature "0.7")
+            (lambda (prompt-body)
+              ;; prompt-body is a plist from the server, extract first message content text
+              (let* ((messages (plist-get prompt-body :messages))
+                     (first-message (and (arrayp messages) (aref messages 0)))
+                     (content (plist-get first-message :content))
+                     (text (plist-get content :text)))
+
+                (message "TEXT: %s" text)
+                (if text
+                    (with-current-buffer target-buffer
+                      (insert text))
+                  (message "No prompt content found."))))
+            (lambda (code msg)
+              (message "Error fetching prompt '%s': %s %s" choice code msg)))))
+       (lambda (_code err)
+         (message "Error listing prompts: %s" err)))))
+
+  (defun dbj/clj-mcp-resources ()
+    (interactive)
+    (let ((conn (gethash "clojure-mcp" mcp-server-connections)))
+      (unless conn (user-error "No MCP connection named 'clojure-mcp'"))
+      (mcp-async-list-resources
+       conn
+       (lambda (conn resources)
+         (let* ((names (mapcar (lambda (p) (plist-get p :name)) resources))
+                (choice (completing-read "Select resource: " names nil t))
+                (uri (plist-get (cl-find-if (lambda (p)
+                                              (string= (plist-get p :name) choice))
+                                            resources)
+  			      :uri)))
+           (message "choice: %s" choice)
+           (message "uri: %s" uri)
+
+           (mcp-async-read-resource
+            conn
+            uri
+            (lambda (resource)
+              (let* ((contents (plist-get resource :contents))
+                     (content (and (arrayp contents) (aref contents 0)))
+                     (text (plist-get content :text)))
+                (message text)
+                (with-temp-buffer
+  		(insert text)
+  		(gptel-context-add))
+                (message "Added resource to context")))
+            (lambda (code msg)
+              (message "Error fetching resource '%s': %s %s" choice code msg)))))
+       (lambda (_code err)
+         (message "Error listing resources: %s" err)))))
+
+(use-package mcp
+  :straight (:type git :host github :repo "lizqwerscott/mcp.el")
+  :after gptel
+  :custom (mcp-hub-servers
+           `(
+	     ("clojure-mcp"
+  	      :command "bash"
+  	      :args ("-lc"
+  		     "export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 JAVA_TOOL_OPTIONS='-Dfile.encoding=UTF-8';
+             clojure -J-Dfile.encoding=UTF-8 -X:mcp :port $(cat .nrepl-port)"))
+  	     ;; ("clojure-mcp"
+  	     ;;  :command "clojure"
+  	     ;;  :args ("-J-Dfile.encoding=UTF-8" "-X:mcp" ":port" "$(cat .nrepl-port)")
+  	     ;;  :env (:LANG "en_US.UTF-8" :LC_ALL "en_US.UTF-8" :JAVA_TOOL_OPTIONS "-Dfile.encoding=UTF-8"))
+  	     ;; ("clojure-mcp" . (:command "bash"
+  	     ;; 				:args ("-c", "clojure -X:mcp :port $(cat .nrepl-port)")))
+  	     ("playwright" . (:command "npx"
+  				       :args ("@playwright/mcp@latest")))
+	     ("chrome-devtools" . (:command "npx"
+  					    :args ("chrome-devtools-mcp@latest")))))
+  :config (require 'mcp-hub)
+
+  (defun srk/mcp--try-decode-utf8 (s)
+    (if (multibyte-string-p s) s
+      (condition-case nil
+          (decode-coding-string s 'utf-8)
+        (error s))))
+  (defun srk/mcp--utf8-shim (orig proc string)
+    (funcall orig proc (srk/mcp--try-decode-utf8 string)))
+  ;; ensure it’s attached once and early
+  (advice-remove 'mcp--process-filter #'srk/mcp--utf8-shim)
+  (advice-add 'mcp--process-filter :around #'srk/mcp--utf8-shim '((depth . -100)))
+  )
+
+
+  ;; (use-package mcp-enc-tools
+  ;;   :load-path "~/projects/mcp-enc-tools"
+  ;;   :after mcp)
+
+  ;; Transient menu
+  (transient-define-prefix srk/start-cider ()
+    "Start CIDER with optional MCP integration"
+    ["CIDER Options"
+     ("-j" "Jack-in: clj" ":clj")
+     ("-s" "Jack-in: cljs" ":cljs") 
+     ("-b" "Jack-in: both" ":both")]
+    ["MCP Integration"
+     ("-m" "Enable MCP integration" ":mcp")]
+    ["Commands"
+     ("j" "Jack-in" srk/cider-jack-in-with-mcp)
+     ("c" "Connect to existing nREPL" srk/cider-connect-with-mcp)]
+    [("q" "Quit" transient-quit-one)])
+
+  ;; Key binding
+  (global-set-key (kbd "C-c C-j") 'srk/start-cider)
+
+  ;;; --- gptel setup using batched 1Password secrets (guarded) ------------------
+  (defvar srk/gptel-initialized nil)
+  (defvar srk/gptel-config-count 0)
+  (defvar srk/op-last-secrets nil)   ;; inspect with: M-: srk/op-last-secrets
+
+  (use-package gptel
+    :straight t
+    :config
+    (setq srk/gptel-config-count (1+ srk/gptel-config-count))
+    (message "srk:gptel :config pass #%d" srk/gptel-config-count)
+
+    ;; These may not exist on older gptel builds—don't hard fail.
+    (ignore-errors (require 'gptel-integrations))
+    (ignore-errors (require 'gptel-context))
+    (unless (fboundp 'gptel-make-tool)
+      (message "srk:gptel note: gptel-make-tool not available in this build"))
+
+    (unless srk/gptel-initialized
+      (setq srk/gptel-initialized t)
+      (message "srk:gptel init: entering")
+
+      (let* ((secrets (srk/op-inject-many-secrets
+                       '(("openai"    "Employee" "OPENAI"    "password")
+                         ("anthropic" "Employee" "Anthropic" "password")
+                         ("gemini"    "Employee" "Gemini2"   "password")
+  		       ("bedrock"   "Employee" "AWS_BEARER_TOKEN_BEDROCK"   "password")
+                         ("kagi"      "Employee" "Kagi"      "password"))))
+             (_ (setq srk/op-last-secrets secrets))
+             (get (lambda (alias) (srk/op--get alias secrets)))
+             (k-openai    (funcall get "openai"))
+             (k-anthropic (funcall get "anthropic"))
+             (k-gemini    (funcall get "gemini"))
+             (k-bedrock   (funcall get "bedrock"))
+             (k-kagi      (funcall get "kagi")))
+        (message "srk:gptel secrets keys seen: %S" (mapcar #'car secrets))
+        (message "srk:gptel openai present? %s" (and k-openai t))
+
+        ;; OpenAI
+        (if k-openai
+            (setq gptel-api-key k-openai)
+          (display-warning 'srk/op "Missing OpenAI key; skipping OpenAI setup." :warning))
+
+        ;; Anthropic
+        (when (and k-anthropic (fboundp 'gptel-make-anthropic))
+          (gptel-make-anthropic "Claude" :stream t :key k-anthropic))
+
+        ;; Gemini
+        (when (and k-gemini (fboundp 'gptel-make-gemini))
+          (gptel-make-gemini "Gemini" :stream t :key k-gemini))
+
+        ;; Kagi
+        (when (and k-kagi (fboundp 'gptel-make-kagi))
+          (gptel-make-kagi "Kagi" :key k-kagi))
+
+        ;; AWS bedrock
+        (gptel-make-openai
+  	  "Bedrock-OpenAI"
+  	:host "bedrock-runtime.eu-north-1.amazonaws.com"
+  	:endpoint "/openai/v1/chat/completions"
+  	:stream t
+  	:key k-bedrock
+  	:models '(openai.gpt-oss-20b-1:0))
+        
+
+        ;; Preferences
+        (setq gptel-default-mode 'org-mode
+              gptel-confirm-tool-calls t
+              gptel-include-tool-results t)
+
+        (message "srk:gptel init: done")))
+    (defalias 'abort-gpt 'gptel-abort)
+    )
+
+  (use-package gptel-got
+    :straight (:host codeberg 
+  		   :repo "bajsicki/gptel-got" 
+  		   :files ("gptel-got.el")
+  		   :branch "main")
+    :after gptel
+    :if (fboundp 'gptel-make-tool))
+
+  (gptel-make-tool
+   :name "web_search"                          ; javascript-style snake_case name
+   :function (lambda (query)                   ; the function that will run
+               (let ((url "https://duckduckgo.com/html?q="))
+                 (eww-browse-url (concat url query))
+                 (with-current-buffer (get-buffer "*eww*")
+                   (sit-for 2)
+                   (let ((results (buffer-string)))
+                     (message "Results: %s" results))
+                   (kill-buffer))))
+   :description "Perform a web search using DuckDuckGo process the results. Fetch the entire content of a relevant hit with the fetch_url tool. try with slightly different seearch query to get better results if needed. "
+   :args (list '(:name "query"
+                       :type string            ; :type value must be a symbol
+                       :description "the search query"))
+   :category "web")
+
+  (gptel-make-tool
+   :name "fetch_url"
+   :function (lambda (url)
+               (eww-browse-url url)
+               (with-current-buffer (get-buffer "*eww*")
+                 (sit-for 3)
+                 (let ((results (buffer-string)))
+                   (kill-buffer)
+                   results)))  ; Return results after killing the buffer
+   :description "Fetch content from any given URL and return the processed results. Use the web_search tool to find other web pages if more or better information is needed."
+   :args (list '(:name "url"
+                       :type string
+                       :description "the URL to fetch"))
+   :category "web")
+
+  (gptel-make-tool
+   :name "read_emacs_buffer"                    ; javascript-style snake_case name
+   :function (lambda (buffer)                  ; the function that will run
+               (unless (buffer-live-p (get-buffer buffer))
+  	       (error "error: buffer %s is not live." buffer))
+               (with-current-buffer  buffer
+  	       (buffer-substring-no-properties (point-min) (point-max))))
+   :description "return the contents of an emacs buffer"
+   :args (list '(:name "buffer"
+  		     :type string            ; :type value must be a symbol
+  		     :description "the name of the buffer whose contents are to be retrieved"))
+   :category "emacs")
+
+  (gptel-make-tool
+   :name "evaluate_lisp_code"
+   :function (lambda (code)
+               (let ((result (eval (read (format "(progn %s)" code)))))
+  	       (if (eq result 'nil)
+                     "Evaluation resulted in nil."
+                   result)))      
+   :description "evaluate emacs lisp code and return the output. consider based on the output if you should evaluate another thing. when the evaluation results in another buffer use the read_emacs_buffer to see the result. use the describe* ie. (describe-function \"functionname\") or (describe-variable \"variablename\") and so forth. also (apropos \"function or varname etc\") and info functions to figure out what the functions are that are needed"
+   :args (list '(:name "code"
+                       :type string
+                       :description "the Emacs Lisp code to evaluate"))
+   :category "emacs")
+
+  (gptel-make-tool
+   :name "read_fs_via_emacs"
+   :function (lambda (file-path)
+               (with-temp-buffer
+                 (insert-file-contents file-path)
+                 (buffer-string)))  ; Return the file content
+   :description "Read the content of a file from the filesystem using Emacs."
+   :args (list '(:name "file-path"
+                       :type string
+                       :description "The path of the file to read"))
+   :category "file")
+
+  (gptel-make-tool
+   :function #'gptel-tools--eval
+   :name  "gptel_eval"
+   :description "Execute Emacs Lisp code"
+   :args (list '(:name "eval"
+  		     :type string
+  		     :description "The Emacs Lisp code to evaluate."))
+   :category "emacs"
+   :confirm t)
+
+  (gptel-make-tool
+   :function #'gptel-org-tools--read-file-contents
+   :name  "gptel-org-tools--read-file-contents"
+   :description "Read and return the contents of a specified file."
+   :args (list '(:name "filename"
+  		     :type string
+  		     :description "The filename to read."))
+   :category "org-mode")
+
+
+  (defun srk/gptel-inspect-fsm ()
+    "Inspect gptel FSM diagnostics."
+    (interactive)
+    (gptel--inspect-fsm))
+
+  (global-set-key (kbd "C-c l i") 'srk/gptel-inspect-fsm)
+  (global-set-key (kbd "C-c C-g C-e") 'srk/rewrite-to-idiomatic-english)
+  (global-set-key (kbd "C-c C-g C-s") 'srk/rewrite-to-idiomatic-swedish)
+  (global-set-key (kbd "C-c C-g C-f") 'srk/rewrite-to-idiomatic-finnish)
+  (global-set-key (kbd "C-c C-g C-a") 'srk/rewrite-to-idiomatic-spannish)
+  (global-set-key (kbd "C-c C-g C-d") 'srk/gptel-with-prompt)
+  (global-set-key (kbd "C-c C-g m")   'srk/gptel-minibuffer-query)
+  (global-set-key (kbd "C-c l l") 'gptel)          ; LLM chat
+  (global-set-key (kbd "C-c l m") 'gptel-menu)     ; Menu
+  (global-set-key (kbd "C-c l a") 'gptel-context-add) ; Add context
+  (global-set-key (kbd "C-c l s") 'gptel-send)     ; Send
+#+end_src
+** Browse url with browser
+#+begin_src emacs-lisp
+(require 'transient)
+
+(defun browse-url-with-browser ()
+  "Open URL at point with selected browser using transient."
+  (interactive)
+  (let ((url (thing-at-point 'url)))
+    (if url
+        (progn
+          (setq-local browse-url-temp url)
+          (transient-setup 'browse-url-browser-menu))
+      (message "No URL found at point"))))
+
+(transient-define-prefix browse-url-browser-menu ()
+  "Transient menu for opening URLs with different browsers."
+  ["Select Browser"
+   ("c" "Chrome" (lambda () (interactive) 
+                   (browse-url-chrome browse-url-temp)))
+   ("f" "Firefox" (lambda () (interactive) 
+                   (browse-url-firefox browse-url-temp)))
+   ;; ("s" "Safari" (lambda () (interactive) 
+   ;;                 (browse-url-safari browse-url-temp)))
+   ("w" "w3m" (lambda () (interactive) 
+                (w3m-browse-url browse-url-temp)))
+   ("e" "EWW" (lambda () (interactive) 
+                (eww browse-url-temp)))])
+
+;; Define browser-specific functions if they don't exist
+(defun browse-url-chrome (url)
+  "Browse URL using Chrome."
+  (browse-url-generic url "open -a 'Google Chrome' %s"))
+
+(defun browse-url-firefox (url)
+  "Browse URL using Firefox."
+  (browse-url-generic url "open -a Firefox %s"))
+
+(defun browse-url-safari (url)
+  "Browse URL using Safari."
+  (browse-url-generic url "open -a Safari %s"))
+
+;; Bind to a key
+(global-set-key (kbd "C-c b") 'browse-url-with-browser)
+#+end_src
+** Mail
+We have installed Mu on macOS using Homebrew. In order to have the same version of Mu and Mu4e, we have not install Mu4e separately from Emacs.
+#+begin_src emacs-lisp
+  ;; (setq
+  ;;  user-mail-address    "notjustsilicon@gmail.com"
+  ;;  user-full-name       "Sami Kallinen"
+  ;;  smtpmail-smtp-server "smtp.gmail.com"    ; $SMTPSERVER
+  ;;  send-mail-function   'smtpmail-send-it     ;
+  ;;  smtpmail-smtp-service 587                  ; SMTP port
+   ;;smtpmail-stream-type  'tls
+   ;;smtpmail-debug-info t
+   ;;smtpmail;; -debug-verb t
+  ;;  )
+
+  ;; (use-package mu4e
+  ;;   :straight nil
+  ;;   :config
+
+  ;;   ;; This is set to 't' to avoid mail syncing issues when using mbsync
+  ;;   (setq mu4e-change-filenames-when-moving t)
+
+  ;;   ;; Refresh mail using isync every 10 minutes
+  ;;   (setq mu4e-update-interval (* 60 60))
+  ;;   (setq mu4e-get-mail-command "mbsync -a")
+  ;;   (setq mu4e-maildir "~/Mail")
+
+  ;;   (setq mu4e-contexts
+  ;; 	(list
+  ;;          ;; Work account
+  ;;          (make-mu4e-context
+  ;;           :name "Personal"
+  ;;           :match-func
+  ;;           (lambda (msg)
+  ;;             (when msg
+  ;;               (string-prefix-p "/8-bit" (mu4e-message-field msg :maildir))))
+  ;;           :vars '((user-mail-address . "sami@8-bit-sheep.com")
+  ;;                   (user-full-name    . "Sami Kallinen")
+  ;;                   (mu4e-drafts-folder  . "/8-bit/[Gmail]/Drafts")
+  ;;                   (mu4e-sent-folder  . "/8-bit/[Gmail]/Sent Mail")
+  ;;                   (mu4e-refile-folder  . "/8-bit/[Gmail]/All Mail")
+  ;;                   (mu4e-trash-folder  . "/8-bit/[Gmail]/Trash")))
+
+  ;;          ;; Personal account
+  ;;          (make-mu4e-context
+  ;;           :name "Work"
+  ;;           :match-func
+  ;;           (lambda (msg)
+  ;;             (when msg
+  ;;               (string-prefix-p "/notjust" (mu4e-message-field msg :maildir))))
+  ;;           :vars '((user-mail-address . "notjustsilicon@gmail.com")
+  ;;                   (user-full-name    . "Sami Kallinen")
+  ;;                   (mu4e-drafts-folder  . "/notjust/[Gmail]/Drafts")
+  ;;                   (mu4e-sent-folder  . "/notjust/[Gmail]/Sent Mail")
+  ;;                   (mu4e-refile-folder  . "/notjust/[Gmail]/All Mail")
+  ;;                   (mu4e-trash-folder  . "/notjust/[Gmail]/Trash")))
+  ;; 	 ;; Work account
+  ;;          (make-mu4e-context
+  ;;           :name "KP oderland"
+  ;;           :match-func
+  ;;           (lambda (msg)
+  ;;             (when msg
+  ;;               (string-prefix-p "/oderland" (mu4e-message-field msg :maildir))))
+  ;;           :vars '((user-mail-address . "sami@kpsystem.se")
+  ;;                   (user-full-name    . "Sami Kallinen")
+  ;;                   (mu4e-drafts-folder  . "/oderland/Utkast")
+  ;;                   (mu4e-sent-folder  . "/oderland/Skickat")
+  ;;                   (mu4e-refile-folder  . "/oderland/Inbox")
+  ;;                   (mu4e-trash-folder  . "/oderland/Papperskorgen")))
+  ;; ))
+
+  ;;   (with-eval-after-load "mm-decode"
+  ;;     (add-to-list 'mm-discouraged-alternatives "text/html")
+  ;;     (add-to-list 'mm-discouraged-alternatives "text/richtext"))
+
+  ;;   (add-to-list 'mu4e-bookmarks
+  ;; 	       '(:name "Unread today"
+  ;; 		       :query "date:today..now AND flag:unread AND NOT flag:trashed and"
+  ;; 		       :key ?T)
+  ;; 	       t)
+  ;;   ;; Enabling xwidgets viewing, but I don't know how to switch back to text after starting it.
+  ;;   ;; (use-package mu4e-views
+  ;;   ;;   :straight (mu4e-views :type git :host github :repo "lordpretzel/mu4e-views"))
+
+    
+  ;;   (require 'mu4e-contrib)
+
+  ;;   (setq mu4e-maildir-shortcuts
+  ;; 	'(
+  ;;           ;; ("/notjust/[Gmail]/Sent Mail" . ?s)
+  ;;           ;; ("/notjust/[Gmail]/Trash"     . ?t)
+  ;;           ;; ("/notjust/[Gmail]/Drafts"    . ?d)
+  ;;           ("/notjust/[Gmail]/All Mail"  . ?a)
+
+  ;; 	  ;;("/8-bit/[Gmail]/Sent Mail" . ?S)
+  ;;           ;; ("/8-bit/[Gmail]/Trash"     . ?T)
+  ;;           ;; ("/8-bit/[Gmail]/Drafts"    . ?D)
+  ;;           ("/8-bit/[Gmail]/All Mail"  . ?A)
+  ;; 	  ("/oderland/Inbox"  . ?O))))
+  ;;
+  ;; (setq mu4e-html2text-command "pandoc -f html -t plain --columns 78 --strip-comments")
+  ;; (setq mu4e-view-prefer-html nil)
+#+end_src
+
+
+*
+** Separedit
+#+begin_src emacs-lisp
+(use-package separedit
+  :commands separedit
+  :custom
+  (separedit-preserve-string-indentation t)
+  (separedit-continue-fill-column t)
+  (separedit-default-mode 'markdown-mode)
+
+  :config
+  (push '("clj" . clojure-mode) separedit-code-lang-modes)
+  (add-hook 'separedit-buffer-creation-hook #'auto-fill-mode))
+
+#+end_src
+** Stanmode
+#+begin_src emacs-lisp
+(use-package stan-mode
+  :straight t)
+#+end_src
+** Magit
+#+begin_src emacs-lisp
+
+  ;; Setup the hooks
+
+  ;; (defvar srk/untracked-whitelist
+  ;;   '(".clj-kondo/clj-kondo/rum/config.edn"
+  ;;     ".clj-kondo/com.github.seancorfield/next.jdbc/config.edn"
+  ;;     ".clj-kondo/com.github.seancorfield/next.jdbc/hooks/com/github/seancorfield/next_jdbc.clj_kondo"
+  ;;     ".clj-kondo/http-kit/http-kit/config.edn"
+  ;;     ".clj-kondo/http-kit/http-kit/httpkit/with_channel.clj"
+  ;;     ".clj-kondo/taoensso/encore/config.edn"
+  ;;     ".clj-kondo/taoensso/encore/taoensso/encore.clj"
+  ;;     "src/eventual/xxx.clj"
+  ;;     "src/eventual/yyy.clj"
+  ;;     "src/kps/teams/module.clj"
+  ;;     "src/kps/teams/routes.clj"
+  ;;     ".projectile")
+  ;;   "List of files that should not be ignored.")
+
+  ;; (defun srk/get-unignored-untracked-files ()
+  ;;   "Get untracked files that we want to track (not ignore)."
+  ;;   (when (magit-toplevel)
+  ;;     (let* ((default-directory (magit-toplevel))
+  ;;            (all-untracked (magit-git-items "ls-files" "--others" "--exclude-standard")))
+  ;;       ;; Only keep files that are in our whitelist
+  ;;       (seq-filter 
+  ;;        (lambda (file)
+  ;;          (cl-some (lambda (pattern) 
+  ;;                     (string-match-p (concat ".*" (regexp-quote pattern) "$") file))
+  ;;                   srk/untracked-whitelist))
+  ;;        all-untracked))))
+
+  ;; (defun srk/magit-commit-check-untracked-files (orig-fun &rest args)
+  ;;   "Advice function to check for untracked files before committing."
+  ;;   (let ((untracked-of-interest (srk/get-unignored-untracked-files)))
+  ;;     (if (not untracked-of-interest)
+  ;;         ;; No relevant untracked files, proceed with commit
+  ;;         (apply orig-fun args)
+  ;;       ;; Ask for confirmation
+  ;;       (if (yes-or-no-p 
+  ;;            (format "Important untracked files found: %s\nProceed with commit? " 
+  ;;                    (mapconcat #'identity untracked-of-interest ", ")))
+  ;;           (apply orig-fun args)
+  ;;         (message "Commit canceled.")))))
+
+  ;; Set up the advice
+  ;;(advice-add 'magit-commit-create :around #'srk/magit-commit-check-untracked-files)
+  ;; Put this right after straight.el bootstrap:
+
+
+  (use-package magit
+    :straight t
+    :demand t
+    :bind (("C-x g" . magit-status)
+  	 ("C-x C-g" . magit-status)))
+
+
+#+end_src
+** Magit gptcommit
+#+begin_src emacs-lisp
+(defun srk/op-read (ref)
+  "Read a 1Password secret by REF like: op://Vault/Item/Field."
+  (string-trim
+   (with-temp-buffer
+     (unless (= 0 (call-process srk/op-bin nil t nil "read" ref))
+       (error "%s read failed. Are you signed in?" srk/op-bin))
+     (buffer-string))))
+
+;; Example: set an env var for libraries that expect OPENAI_API_KEY
+;; (setenv "OPENAI_API_KEY" (srk/op-read "op://Employee/OPENAI/password"))
+
+;; If a library wants a Lisp variable instead:
+;; (setq openai-api-key (my/op-read "op://Personal/OpenAI/API Key"))
+;; or for llm.el providers, they typically read OPENAI_API_KEY already.
+
+;; llm core
+(use-package llm
+  :straight (llm :type git :host github :repo "ahyatt/llm"))
+
+;; make sure the OpenAI provider is loaded (it's a file in the same repo)
+(use-package llm-openai
+  :after llm
+  :straight nil             ;; lives inside the llm repo; no separate install
+  :init (require 'llm-openai))
+
+(use-package magit-gptcommit
+  :straight (magit-gptcommit :type git :host github :repo "douo/magit-gptcommit")
+  :after (magit llm-openai)
+  :bind (:map git-commit-mode-map
+              ("C-c C-g" . magit-gptcommit-commit-accept))
+  :config
+  ;; Now it's safe to call the constructor
+  (setq magit-gptcommit-llm-provider
+        (make-llm-openai :key (srk/op-read "op://Employee/OPENAI/password")))
+  (magit-gptcommit-status-buffer-setup))
+
+
+#+end_src
+
+** Zprint
+#+begin_src emacs-lisp
+(use-package zprint-mode
+  :straight t)
+#+end_src
+  
+** Treemacs
+
+#+begin_src emacs-lisp
+(use-package treemacs
+  :straight t)
+
+(use-package treemacs-projectile
+  :straight t
+  :after treemacs projectile)
+
+(use-package treemacs-projectile
+  :straight t
+  :after treemacs projectile)
+
+(use-package lsp-treemacs
+  :straight t
+  :after treemacs lsp)
+#+end_src
+** VTT file helpers
+#+begin_src emacs-lisp
+(defun srk/vtt-hide-techinacl-lines ()
+  (interactive)
+  (save-excursion
+    (goto-char
+     (point-min))
+    (while
+	(not
+	 (eobp))
+      (let
+	  ((line
+	    (buffer-substring-no-properties
+	     (line-beginning-position)
+	     (line-end-position))))
+	(if
+	    (string-match-p "^[a-zA-Z ]*$" line)
+	    nil
+	  (add-text-properties
+	   (line-beginning-position)
+	   (line-end-position)
+	   '(invisible t))))
+      (forward-line 1))))
+
+(defun srk/vtt-unhide-technical-lines
+    (interactive)
+  (remove-text-properties
+   (point-min)
+   (point-max)
+   '(invisible t)))
+#+end_src
+
+** dired-preview
+#+begin_src emacs-lisp
+(use-package dired-preview
+  :straight t)
+#+end_src
+** Denote
+#+begin_src emacs-lisp
+;; (use-package denote
+;;   :straight t
+;;   :config (setq denote-directory "~/notes/denotes")
+;;   (setq denote-known-keywords '("journal" "projects" "ideas"))
+;;   ;; (setq denote-prompts '(title subdirectory))
+
+;;   ;; Buttonize all denote links in text buffers
+;;   ;;(add-hook 'find-file-hook #'denote-link-buttonize-buffer)
+;;   ;;(require 'denote-journal-extras))
+
+;; (defun srk/denote-sort-sign ()
+;;   (interactive)
+;;   (setq inhibit-read-only t)
+;;   (sort-regexp-fields nil "^.*$" "==.*--" (point-min) (point-max))
+;;   (setq inhibit-read-only nil))
+
+
+#+end_src
+** Elisa
+
+#+begin_src bash
+# ollama serve
+# ollama pull nomic-embed-text
+# ollama pull sskostyaev/openchat:8k-rag
+#+end_src
+this seems to be the probelem on mac:
+https://emacs.stackexchange.com/questions/79956/how-do-you-load-extensions-in-sqlite-built-into-emacs
+
+#+begin_src emacs-lisp
+;; (use-package elisa
+;;  :straight (elisa :type git :host github :repo "s-kostyaev/elisa"))
+
+#+end_src
+** Yeetube
+#+begin_src emacs-lisp
+(use-package yeetube
+  :straight t
+  :config
+  (setq yeetube-results-limit 100))
+
+(defun srk/cycle-yeetube-filter ()
+  "Cycle the value of `yeetube-filter` through its valid options."
+  (interactive)
+  (let ((options '("Relevance" "Date" "Views" "Rating"))
+        (current (symbol-value 'yeetube-filter)))
+    (if (eq (car (last options)) current)
+        (setq yeetube-filter (car options))
+      (setq yeetube-filter (cadr (member current options))))
+    (message yeetube-filter)))
+
+#+end_src
+** Language detection
+#+begin_src emacs-lisp
+;; (use-package language-detection
+;;   :straight t)
+#+end_src
+** Iedit
+#+begin_src emacs-lisp
+(use-package iedit
+  :straight t)
+#+end_src
+** Spacious-padding
+#+begin_src emacs-lisp
+(use-package spacious-padding
+  :straight t
+  :config
+  (setq spacious-padding-subtle-mode-line t)
+  (setq spacious-padding-subtle-mode-line
+	'(:mode-line-active error :mode-line-inactive "gray20"))
+  :hook (after-init . spacious-padding-mode))
+#+end_src
+
+** File shortcuts
+#+begin_src emacs-lisp
+(defun srk/create-named-command (name body)
+  "Create a named command given a symbol NAME and function BODY."
+  (defalias name
+    `(lambda (&optional arg)
+       "Named command."
+       (interactive "P")
+       ,@body)))
+
+(defun srk/find-or-switch-file (key buffer-name file-path)
+  "Create or update a global keybinding to either switch to buffer 
+   if it exists or find a file given its path."
+  (let* ((command-name (intern (concat "find-or-switch-" 
+                                       (file-name-nondirectory file-path))))
+         (command (srk/create-named-command command-name
+					    `((if (get-buffer ,buffer-name)
+						  (switch-to-buffer ,buffer-name)
+						(find-file ,file-path))))))
+    (global-set-key (kbd key) command)))
+
+(srk/find-or-switch-file "C-c f n" "notes.org" "~/notes/notes.org")
+(srk/find-or-switch-file "C-c f t" "tasks.org" "~/notes/doing-shit/tasks.org")
+(srk/find-or-switch-file "C-c f i" "inbox.org" "~/notes/doing-shit/inbox.org")
+(srk/find-or-switch-file "C-c f m" "myinit.org" "~/.config/emacs/myinit.org")
+(srk/find-or-switch-file "C-c f d" "daily.org" "~/notes/doing-shit/daily.org")
+(srk/find-or-switch-file "C-c f c" "" "~/.clojure/deps.edn")
+(srk/find-or-switch-file "C-c f p" "repl.clj" "~/kpsystem/panorama/src/geoserver/repl.clj")
+
+
+
+#+end_src
+
+** Keyfreq
+#+begin_src emacs-lisp
+(use-package keyfreq
+  :straight t
+  :config
+  (keyfreq-mode 1)
+  (keyfreq-autosave-mode 1)
+  (setq keyfreq-excluded-commands
+	'(self-insert-command
+	  org-self-insert-command
+          forward-char
+	  backward-char
+	  previous-line
+	  next-line)))
+#+end_src
+
+** Ement.el
+#+begin_src emacs-lisp
+(use-package ement
+  :straight t)
+
+
+
+#+end_src
+** 1password
+Follow these steps:
+
+1. Start by choosing your account from the minibuffer. The options are "8-bit-sheep" or "Family". The URL for "8-bit-sheep" is "8-bit-sheep.1password.com", and for "Family", it's "my.1password.com".
+
+2. Once you've chosen the account, run the shell command `op item ls --format=json --account my.1password.com`. Be sure to replace the `my.1password.com` URL from the command with the URL of the account you've chosen. 
+
+3. This command will return a JSON with a structure similar to the example provided. 
+   [
+   {
+   "id": "wgwdd",
+   "title": "Twitter",
+   "version": 2,
+   "vault": {
+   "id": "xxd",
+   "name": "Social"
+   },
+   {
+   "id": "hnyrmsdi",
+   "title": "Yesper admin login",
+   "version": 1,
+   "vault": {
+   "id": "khun",
+   "name": "Vault1"
+   },
+   "category": "LOGIN",
+   "last_edited_by": "ddd",
+   "created_at": "2023-09-18T07:22:24Z",
+   "updated_at": "2023-09-18T07:22:24Z",
+   "additional_information": "s@s.s",
+   "urls": [
+   {
+   "label": "website",
+   "primary": true,
+   "href": "https://w.w.fi"
+   }
+   ]
+   },]
+
+   4. Next, you'll be asked to choose a vault interactively. The options are given in the 'name' field under 'vault' in the JSON items. You'll be only offered unique options ie the list is deduplicated.
+
+   5. After the vault is chosen, select an item interactively. The options are given in the 'title' field in the JSON items belonging to the selected vault.
+
+   6. Using the values of the chosen account-url, vault, and item, the function will construct a CLI command following this structure: `op read op://<vault>/<item>/password --account <account-url>`.
+
+   7. This command is then run in a shell, and the output is pasted into the buffer where the function was called.```
+
+   Remember to replace "<account-url>", "<vault>", and "<item>" with the actual account URL, vault, and item you've chosen.
+
+   This function helps you interactively choose elements from your 1password account and generate a command to read the password of a specific item. It assists in the automation of password retrieval, saving time and increasing efficiency.
+
+   #+begin_src emacs-lisp
+
+;; (use-package auth-source-1password
+;;   :straight t
+;;   :config
+;;     (auth-source-1password-enable))
+
+;; (auth-source-pick-first-password :vault "KPsystem" :host "dan-johansson.eu.auth0.com" :user "admin@kpsystem.se")
+
+(require 'json)
+
+(defun srk/1password-choose-field ()
+  "Fetch and select account, vault and item from 1password."
+  (let* ((accounts '(("8-bit-sheep" . "8-bit-sheep.1password.com")
+                     ("Family" . "my.1password.com")))
+	 (account (cdr (assoc (completing-read "Choose an account: " 
+                                               (mapcar 'car accounts)) 
+                              accounts)))
+	 (json-raw (shell-command-to-string 
+                    (format "op item ls --format=json --account %s" account)))
+	 (json-data (json-read-from-string json-raw))
+	 (vaults (delete-dups 
+		  (mapcar (lambda (item) 
+                            (cdr (assoc 'name (assoc 'vault item)))) 
+			  json-data)))
+	 (chosen-vault (completing-read "Choose a vault: " vaults))
+	 (items (delq nil 
+                      (mapcar (lambda (item)
+				(when (string= chosen-vault 
+                                               (cdr (assoc 'name 
+                                                           (assoc 'vault item))))
+				  (cdr (assoc 'title item))))
+                              json-data))))
+    (list
+     account
+     (completing-read "Choose an item: " items)
+     chosen-vault)))
+
+(defun srk/1password-handle-field (handler field)
+  (let* ((chosen (srk/1password-choose-field))
+	 (account (car chosen))
+	 (chosen-item (cadr chosen))
+	 (chosen-vault (caddr chosen))
+	 (chosen-field-raw
+	  (shell-command-to-string 
+           (format "op read op://%s/%s/%s --account %s" 
+                   (shell-quote-argument chosen-vault)
+                   (shell-quote-argument chosen-item)
+                   field account)))
+	 (chosen-field (replace-regexp-in-string "\n" "" chosen-field-raw)))
+    (funcall handler chosen-field)))
+
+(defun srk/1password-fetch-pw-insert ()
+  "Interactively fetch password from 1password."
+  (interactive)
+  (srk/1password-handle-field
+   (lambda (chosen-password) (insert chosen-password)) "password"))
+
+(defun srk/1password-fetch-pw-kill ()
+  "Interactively fetch password from 1password."
+  (interactive)
+  (srk/1password-handle-field
+   (lambda (chosen-password) (kill-new chosen-password)) "password"))
+
+(defun srk/1password-fetch-username-insert ()
+  "Interactively fetch password from 1password."
+  (interactive)
+  (srk/1password-handle-field
+   (lambda (chosen-username) (insert chosen-username)) "username"))
+
+(defun srk/1password-fetch-username-kill ()
+  "Interactively fetch password from 1password."
+  (interactive)
+  (srk/1password-handle-field
+   (lambda (chosen-username) (kill-new chosen-username)) "username"))
+
+   #+end_src
+
+** Free keys
+#+begin_src emacs-lisp
+(use-package free-keys
+  :straight t)
+#+end_src
+
+(message "today here")
+** Vterm
+#+begin_src emacs-lisp
+(use-package vterm
+  :ensure t
+  :custom
+  (vterm-shell "/etc/profiles/per-user/samikallinen/bin/zsh")
+  :config
+  ;; Any other vterm configuration you might have
+  )
+#+end_src
+
+** Golden ratio
+#+begin_src emacs-lisp
+(use-package golden-ratio
+  :straight t
+  :config
+  (golden-ratio-mode 1)
+  (add-to-list 'golden-ratio-extra-commands 'ace-window))
+#+end_src
+
+** Visible mark
+#+begin_src emacs-lisp
+(defface visible-mark-active
+  '((((type tty) (class mono)))
+    (t (:background "magenta"
+		    :foreground "black"
+		    ))) "")
+(setq visible-mark-face1 '((t (:background "light salmon" :foreground "black"))))
+
+(setq visible-mark-face2 '((t (:background "light goldenrod" :foreground "black"))))
+
+(setq visible-mark-max 2)
+(setq visible-mark-faces `(visible-mark-face1 visible-mark-face2))
+(use-package visible-mark
+  :straight t
+  :config (global-visible-mark-mode 1))
+#+end_src
+
+** Clay
+#+begin_src emacs-lisp
+
+(defun srk/clay-eval-sexp-up-to-point ()
+  "Evaluate the current sexp form up to point.
+
+- It finds the code between the point and the start of the sexp expression;
+- It balances this bit of code by closing the expression;
+- It evaluates and prints the resulting code using `clay-make-form'."
+  (interactive)
+  (let* ((beg-of-sexp (save-excursion (up-list) (backward-list) (point)))
+         (beg-delimiter (save-excursion (up-list) (backward-list) (char-after)))
+         (beg-set?  (save-excursion (up-list) (backward-list) (char-before)))
+         (code (buffer-substring-no-properties beg-of-sexp (point)))
+         (code (if (= beg-set? ?#) (concat (list beg-set?) code) code))
+         (code (concat code (list (cider--matching-delimiter beg-delimiter)))))
+    (clay-make-form code)))
+
+(use-package clay
+  :straight t
+  :config
+  (define-key clojure-mode-map (kbd "<S-return>") 'clay-make-last-sexp)
+  (define-key clojure-mode-map (kbd "C-M-c <S-return>") 'clay-make-defun-at-point)
+  (define-key clojure-mode-map (kbd "C-c <S-return>") 'srk/clay-eval-sexp-up-to-point)
+  ;;    (define-key clojure-mode-map (kbd "<S-return>") 'clay-make-defun-at-point)
+  )
+
+;; 
+;; (defun read-url-and-eval (url)
+;;   "Fetch the file from URL and evaluate it as elisp code. Use with
+;; care."
+;;   (let ((buffer (url-retrieve-synchronously url)))
+;;     (if buffer
+;; 	  (with-current-buffer buffer
+;; 	    (goto-char (point-min))
+;; 	    (re-search-forward "^$")
+;; 	    (delete-region (point) (point-min))
+;; 	    (eval-buffer))
+;; 	(error "Failed to fetch code from URL %S" url))))
+
+;; (read-url-and-eval "https://raw.githubusercontent.com/scicloj/clay/main/clay.el")
+#+end_src
+
+** Alert
+#+begin_src emacs-lisp
+
+;; (use-package alert
+;;   :config
+;;   (if (eq system-type 'darwin)
+;; 	(setq
+;; 	 ;; alert-default-style 'notifier
+;; 	 alert-default-style 'osx-notifier
+;; 	 )))
+
+;; ;; adding sound notification to the osx notifier
+(eval-after-load 'alert
+  '(defun alert-osx-notifier-notify (info)
+     (apply #'call-process "osascript" nil nil nil "-e"
+    	    (list (format "display notification %S with title %S sound name %S"
+    			  (alert-encode-string (plist-get info :message))
+    			  (alert-encode-string (plist-get info :title))
+    			  (alert-encode-string "Purr"))))
+     (alert-message-notify info)))
+
+;; (alert "This is an alert" :severity 'high)
+;; (alert "This is an alert" :title "My Alert" :category 'debug)
+
+
+#+end_src
+** Rainbow mode
+#+begin_src emacs-lisp
+(use-package rainbow-mode
+  :straight t)
+#+end_src
+
+** Slack
+#+begin_src emacs-lisp
+  ;; (use-package slack
+  ;;   :straight (slack :type git :host github :repo "Konubinix/emacs-slack")
+  ;;   :commands (slack-start)
+  ;;   :init
+  ;;   (setq slack-buffer-emojify t) ;; if you want to enable emoji, default nil
+  ;;   (setq slack-prefer-current-team t)
+  ;;   (setq slack-render-image-p t)
+
+  ;;   :config
+  ;;   (defun srk/slack-get-user-emoji (name)
+  ;;     (let* ((profiles (slack-user-names (slack-team-select)))
+  ;; 	   (profile (assoc name profiles))
+  ;;            (profile-properties (cdr profile))
+  ;;            (status-profile (plist-get profile-properties :profile))
+  ;;            (status-emoji (plist-get status-profile :status_emoji)))
+  ;;       status-emoji))
+  ;;   (url-cookie-store "d" "xoxd-xPC4VnNqbnlK%2F%2Fyk%2BWmFlbEZTNqX63sJawmvoaVD05Hdpq6z8kwPFZiKuJVQTmMFhvn2Gr8yZKqxiO%2FqwhTNDshQxaTl5yej5JGriDtW1pwwFR4ttM2JdpF7p48Smoktgw%2FsX5Q2J4h1sdyI7N1XpwLWdbUzn02Zvfam%2FCaKhpALDij9SjQbbz0M" nil ".slack.com" "/" t)
+  ;;   (slack-register-team
+  ;;    :name "kpsystem"
+  ;;    :default t
+  ;;    :cookie "xoxd-xPC4VnNqbnlK%2F%2Fyk%2BWmFlbEZTNqX63sJawmvoaVD05Hdpq6z8kwPFZiKuJVQTmMFhvn2Gr8yZKqxiO%2FqwhTNDshQxaTl5yej5JGriDtW1pwwFR4ttM2JdpF7p48Smoktgw%2FsX5Q2J4h1sdyI7N1XpwLWdbUzn02Zvfam%2FCaKhpALDij9SjQbbz0M"
+  ;;    :token "xoxc-363964592738-2685600891506-5147313291282-f474874ba9d26422b4c04c87ade9b1bd006a6346b90daea40d54549ec0ba6f87"
+  ;;    :subscribed-channels '(general panorama utveckling random bbucket)
+  ;;    :full-and-display-names t)
+  ;;   (global-set-key (kbd "C-c s r") 'slack-select-rooms)
+  ;;   (global-set-key (kbd "C-c s s") 'slack-user-set-status)
+  ;;   (global-set-key (kbd "C-c s e") 'slack-message-edit)
+  ;;   (global-set-key (kbd "C-c s a") 'slack-message-add-reaction)
+  ;;   (global-set-key (kbd "C-c s i") 'slack-insert-emoji))
+
+#+end_src
+
+** GPT helper functions
+#+begin_src emacs-lisp
+;; (use-package gpt-helper
+;;   :straight (gpt-helper :type git :host github :repo "skallinen/gpt-helper")
+;;   :after (request))
+#+end_src
+
+** CRDT
+#+begin_src emacs-lisp
+(use-package crdt
+  :straight t
+  :init
+  (setq crdt-tuntox-executable "/usr/bin/tuntox"
+	crdt-use-tuntox t))
+#+end_src
+
+** Mastodon
+#+begin_src emacs-lisp
+(use-package mastodon
+  :straight t
+  :config
+  (setq mastodon-instance-url "https://mastodon.social"
+	mastodon-active-user "sakalli"))
+#+end_src
+
+** Clojure essential ref nov
+#+begin_src emacs-lisp
+(use-package clojure-essential-ref-nov
+  :straight t
+  :init
+  (setq clojure-essential-ref-nov-epub-path "~/downloads/Clojure_The_Essential_Reference_v31.epub"))
+
+#+end_src
+** Thing At Point
+#+begin_src emacs-lisp
+(use-package thingatpt
+  :straight t
+  :config
+  (defun srk/clojure-books-selection-occur ()
+    (interactive)
+    (if mark-active
+	(let (
+	      (selection (buffer-substring-no-properties (region-beginning) (region-end))))
+	  (if (= (length selection) 0)
+	      (message "no selection!")
+	    (pdf-occur-search
+	     '("~/downloads/Clojure_The_Essential_Reference_v31.pdf"
+	       "~/cynthia-hdd3/Dropbox/Apps/Rakuten Kobo/The Joy of ClojureSecond Edition/The_Joy_of_Clojure_Second_Edition.pdf")
+	     selection))
+	  )
+      (error "mark not active")))
+
+  (defun srk/clojure-books-symbol-occur nil
+    (interactive)
+    (let ((needle (first (last (split-string (symbol-name (symbol-at-point)) "/"))))) 
+      (pdf-occur-search
+       '("~/downloads/Clojure_The_Essential_Reference_v31.pdf"
+	 "~/cynthia-hdd3/Dropbox/Apps/Rakuten Kobo/The Joy of Clojure Second Edition/The_Joy_of_Clojure_Second_Edition.pdf")
+       needle)))
+
+  (defun srk/cer-occur-index nil
+    (interactive)
+    (let ((needle (first (last (split-string (symbol-name (symbol-at-point)) "/"))))) 
+      (pdf-occur-search
+       '(("~/downloads/Clojure_The_Essential_Reference_v31.pdf" . (1116 . 0)) )
+       needle)))
+
+  (defun srk/joy-occur-index nil
+    (interactive)
+    (let ((needle (first (last (split-string (symbol-name (symbol-at-point)) "/"))))) 
+      (pdf-occur-search
+       '(("~/cynthia-hdd3/Dropbox/Apps/Rakuten Kobo/The Joy of Clojure Second Edition/The_Joy_of_Clojure_Second_Edition.pdf" . (502 . 0)) )
+       needle))))
+
+#+end_src
+
+** Neil
+#+begin_src emacs-lisp
+(use-package neil
+  :straight t
+  :config
+  (setq neil-inject-dep-to-project-p t))
+#+end_src
+** Http twiddle
+#+begin_src emacs-lisp
+(use-package http-twiddle
+  :straight t
+  :config
+  (setq http-twiddle-tls t))
+
+#+end_src
+** w3m-emacs
+#+begin_src emacs-lisp
+(use-package w3m
+  :straight t)
+#+end_src
+** Which key
+#+begin_src emacs-lisp
+(use-package which-key
+  :straight t
+  :config
+  (which-key-mode))
+#+end_src
+** Expand Region
+#+begin_src emacs-lisp
+(use-package expand-region
+  :straight t
+  :bind ("C-=" . er/expand-region))
+#+end_src
+
+** Autothemer
+#+begin_src emacs-lisp
+(use-package autothemer
+  :straight t)    
+
+#+end_src
+
+** Hydra
+#+begin_src emacs-lisp
+(use-package hydra
+  :straight t)
+
+#+end_src
+
+** Org mode
+*** Installing org mode packages
+Note that org is loaded in the initi.el file so that the built in version can be overruled.
+#+begin_src emacs-lisp
+(defun markdown-to-org-from-kill-ring ()
+  "Convert markdown from kill ring to org-mode using pandoc and insert result."
+  (interactive)
+  (let ((markdown (current-kill 0)))
+    (insert 
+     (with-temp-buffer
+       (insert markdown)
+       (shell-command-on-region (point-min) (point-max)
+                               "pandoc -f markdown -t org"
+                               nil t)
+       (buffer-string)))))
+
+(setq org-M-RET-may-split-line '((default . nil)))
+
+(setq org-insert-heading-respect-conent t)
+
+(setq org-habit-show-habits-only-for-today t)
+
+
+(setq org-log-into-drawer t)
+
+(setq org-cite-global-bibliography '("/home/sakalli/notes/bibliography/library.bib"))
+
+(setq variable-pitch nil)
+
+(add-to-list
+ 'org-src-lang-modes '("plantuml" . plantuml))
+
+(setq org-plantuml-jar-path "/Users/samikallinen/plantuml.jar")
+
+(add-to-list 'org-babel-load-languages '(shell . t))
+
+(add-to-list 'org-babel-load-languages '(clojure . t))
+
+(setq org-modules '(
+		    org-habit
+		    ;;org-bbdb
+		    ;;org-gnus
+		    org-info
+		    org-jsinfo
+		    org-mouse
+		    org-protocol
+		    org-eal
+		    ))
+
+(when (not(eq system-type 'darwin))
+
+  )
+
+  (use-package ob-plantuml
+    :straight nil
+    :after modes/plantuml
+    :config
+    (setq org-plantuml-jar-path "/Users/samikallinen/plantuml.jar")
+    (add-to-list 'org-babel-load-languages '(plantuml . t)))
+;; (use-package ob-plantuml
+;;   :straight t ;; Often bundled with Org or loaded automatically
+;;   :config
+;;   ;; Set the path to your plantuml executable or JAR file
+;;   ;; Use (executable-find "plantuml") if plantuml is in your PATH
+;;   (setq org-plantuml-jar-path (or (executable-find "plantuml") "/Users/samikallinen/plantuml.jar"))
+;;   ;; Ensure plantuml is in the languages list
+;;   (add-to-list 'org-babel-load-languages '(plantuml . t) t))
+
+
+(use-package ob-clojurescript
+  :straight t )
+
+(use-package racket-mode
+  :straight t )
+
+(defhydra org-hydra (global-map "s-c")
+  "org structure"
+  ("C-n"         outline-next-visible-heading)
+
+
+  ("C-p"     outline-previous-visible-heading)
+  ("C-u"     outline-up-heading)
+  ("C-<"     outline-promote)
+  ("C->"     outline-demote)
+
+  ("U"       org-shiftmetaup)
+  ("D"       org-shiftmetadown)
+  ("L"       org-shiftmetaleft)
+  ("R"       org-shiftmetaright)
+
+  ("d"       org-metadown)
+  ("u"       org-metaup)
+  ("r"       org-metaright)
+  ("l"       org-metaleft)
+
+  ("m"       org-meta-return)
+  ("RET"     org-meta-return)
+
+  ("C-a"     org-archive-subtree-default)
+  ("C-b"     org-toggle-checkbox)
+  ("C-c"     org-columns)
+  ("C-d"     org-clock-display)
+  ("C-e"     org-clock-modify-effort-estimate)
+  ("C-f"     org-emphasize)
+  ("TAB"     org-clock-in)
+  ("C-j"     org-clock-goto)
+  ("C-l"     org-latex-preview)
+  ;;    ("C-n"     org-next-link)
+  ("C-o"     org-clock-out)
+  ;;    ("C-p"     org-previous-link)
+  ("C-q"     org-clock-cancel)
+  ("C-r"     org-toggle-radio-button)
+  ("C-t"     org-toggle-time-stamp-overlays)
+  ;;    ("C-u"     org-dblock-update)
+  ("C-v"     org-toggle-inline-images)
+  ("C-w"     org-cut-special)
+  ("C-x"     org-clock-in-last)
+  ("C-y"     org-paste-special)
+  ("C-z"     org-resolve-clocks)
+  ("!"       org-reload)
+  (","       org-timer-pause-or-continue)
+  ("-"       org-timer-item)
+  ("."       org-timer)
+  ("0"       org-timer-start)
+  (";"       org-timer-set-timer)
+  ("<"       org-agenda-set-restriction-lock)
+  (">"       org-agenda-remove-restriction-lock)
+  ("A"       org-archive-to-archive-sibling)
+  ("E"       org-inc-effort)
+  ("G"       org-feed-goto-inbox)
+  ("I"       org-info-find-node)
+  ("M"       org-insert-todo-heading)
+  ("P"       org-set-property-and-value)
+  ("["       org-reftex-citation)
+  ("\\"       org-toggle-pretty-entities)
+  ("_"       org-timer-stop)
+  ("a"       org-toggle-archive-tag)
+  ("b"       org-tree-to-indirect-buffer)
+  ("c"       org-clone-subtree-with-time-shift)
+  ;;    ("d"       org-insert-drawer)
+  ("e"       org-set-effort)
+  ("f"       org-footnote-action)
+  ("g"       org-feed-update-all)
+  ("o"       org-toggle-ordered-property)
+  ("p"       org-set-property)
+  ("q"       org-toggle-tags-groups)
+  ("v"       org-copy-visible)
+  ("x"       org-dynamic-block-insert-dblock))
+
+(use-package ox-pandoc
+  :ensure t
+  :after org
+  :config
+  (add-to-list 'org-export-backends 'pandoc)
+  ;; Explicitly set available exporters (optional)
+  (setq org-pandoc-options-for-markdown '((standalone . t)))
+  ;; For GitHub-flavored markdown
+  (setq org-pandoc-options-for-markdown_github '((standalone . t))))
+
+#+end_src
+
+*** Switch task to Today and schedule for today
+#+begin_src emacs-lisp
+(defun my-org-switch-to-today-and-schedule-for-today ()
+  "Set subtree Today and schedule for today."
+  (interactive)
+  (unless (org-before-first-heading-p)
+    (org-todo "Today")
+    (org-schedule nil "+0d")))
+
+(define-key org-mode-map (kbd "C-c 1") 'my-org-switch-to-today-and-schedule-for-today)
+#+end_src
+
+
+#+begin_src emacs-lisp
+
+(setq browse-url-browser-function 'browse-url-generic)
+(setq browse-url-generic-program "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+
+(use-package org-gcal
+  :straight t
+  :init
+  ;; make sure credentials & files are set BEFORE package loads
+  (setq
+   org-gcal-client-id (srk/op-read "op://Private/GoogleCalendar/client-id")
+   org-gcal-client-secret (srk/op-read "op://Private/GoogleCalendar/client-secret")
+   org-gcal-fetch-file-alist
+   '(("sami@8-bit-sheep.com" . "~/notes/sheep.org")
+     ("notjustsilicon@gmail.com" . "~/notes/notjust.org")
+     ("en.finnish#holiday@group.v.calendar.google.com" . "~/notes/fi-holidays.org")
+     ("en-gb.swedish#holiday@group.v.calendar.google.com" . "~/notes/se-holidays.org")
+     ("en-gb.finnish#holiday@group.v.calendar.google.com" . "~/notes/fi-holidays.org")
+     ("en-gb.spain#holiday@group.v.calendar.google.com" . "~/notes/sp-holidays.org")))
+  ;; optional: avoid repeated passphrase prompts for token store
+  (setq plstore-cache-passphrase-for-symmetric-encryption t)
+  :config
+  ;; make org-gcal re-read credentials if it was loaded earlier
+  (org-gcal-reload-client-id-secret))
+
+(setq org-agenda-files (list "~/notes/sheep.org"
+			     "~/notes/fi-holidays.org" 
+			     "~/notes/se-holidays.org" 
+			     "~/notes/sp-holidays.org" 
+			     ;;"~/notes/sheep-vacations.org"
+			     "~/notes/notjust.org"
+			     "~/notes/doing-shit/tasks.org"
+			     "~/notes/doing-shit/inbox.org"
+			     "~/notes/doing-shit/tickler.org"))
+
+(setq org-refile-targets '(("~/notes/doing-shit/tasks.org" :maxlevel . 3)
+			   ("~/notes/doing-shit/someday.org" :level . 1)
+			   ("~/notes/doing-shit/tickler.org" :maxlevel . 2)))
+
+(define-key org-read-date-minibuffer-local-map (kbd "C-n") (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-week 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "C-f") (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-day 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "C-p") (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-week 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "C-b") (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-day 1))))
+#+end_src
+
+*** Org agenda keyb
+#+begin_src emacs-lisp                                        ; Set key combos
+(define-key global-map "\C-ca" 'org-agenda)
+
+(setq org-agenda-custom-commands
+      '(("c" "Simple agenda view"
+	 ((agenda "")
+	  (alltodo "")))))
+
+(add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync) ))
+(add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync)
+					     ;;(org-trello-sync-card)
+					     ))
+#+end_src
+
+*** Org TODO keywoard colors
+#+begin_src emacs-lisp
+(setq org-todo-keyword-faces
+      '(
+	("Inbox" . "#A9421E")
+	("Today" . "#7AADB6")
+	("Done" . "#50968D")
+	("Waiting" . "#E59124")
+	("Current-Pomodoro" . "#92BD6C")
+	("Cancelled" . "#DF6854")))
+#+end_src
+
+*** Org capture templates
+#+begin_src emacs-lisp
+(setq org-capture-templates
+      '(("a" "Appointment" entry (file  "~/notes/gcal.org" )
+	 "* %?\n\n%^T\n\n:PROPERTIES:\n\n:END:\n\n")
+	("t" "todo" entry (file+headline  "~/notes/doing-shit/inbox.org" "Tasks")
+	 "* Todo %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+
+	;; ("t" "Todo [inbox]" entry
+	;;  (file+headline "~/notes/doing-shit/inbox.org" "Tasks")
+	;;  "** Todo %i%?")
+	("T" "Tickler" entry
+	 (file+headline "~/notes/doing-shit/tickler.org" "Tickler")
+	 "* %i%? \n %U")))
+
+#+end_src
+
+*** face remap
+#+begin_src emacs-lisp
+(when (member "Noto Color Emoji" (font-family-list))
+  (set-fontset-font
+   t 'symbol (font-spec :family "Noto Color Emoji") nil 'prepend))
+
+(use-package face-remap
+  :custom-face
+  (fixed-pitch ((t (:family "RobotoMono Nerd Font" :inherit 'default))))
+  (org-table ((t (:inherit fixed-pitch))))
+  (org-block ((t (:inherit fixed-pitch)))))
+#+end_src
+*** org-roam-ui 
+#+begin_src emacs-lisp
+
+
+(use-package org-roam-ui
+  :straight t
+  :after org-roam ;; or :after org
+  ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+  ;;         a hookable mode anymore, you're advised to pick something yourself
+  ;;         if you don't care about startup time, use
+  ;;  :hook (after-init . org-roam-ui-mode)
+  :config
+  (setq org-roam-ui-sync-theme t
+	org-roam-ui-follow t [[:build (:not native-compile)]] 
+	org-roam-ui-update-on-save t
+	org-roam-ui-open-on-start t))
+#+end_src
+
+*** org-tree-slide 
+#+begin_src emacs-lisp
+
+
+(use-package org-tree-slide
+  :hook ((org-tree-slide-play . srk/presentation-setup)
+	 (org-tree-slide-stop . srk/presentation-end))
+  :bind ((:map org-mode-map
+	       ("s-<f7>" . org-tree-slide-mode)
+	       :map org-tree-slide-mode-map
+	       ("(" . org-tree-slide-move-previous-tree)
+	       (")" . org-tree-slide-move-next-tree)))
+  :custom
+  (org-tree-slide-slide-in-effect t)
+  (org-tree-slide-activate-message "Lets do this")
+  (org-tree-slide-deactivate-message "Thank you!")
+  (org-tree-slide-header t)
+  (org-tree-slide-breadcrumbs " > ")
+  (org-image-actual-width nil))
+
+#+end_src
+
+*** org-download 
+#+begin_src emacs-lisp
+(use-package org-download
+  :straight t
+  ;; org-download use buffer-local variables. Set it individually in files. Otherwise, put things flatly in misc
+  ;; folder.
+  :init
+  (setq-default org-download-method 'directory
+		org-download-image-dir "~/notes/downloaded-images/"
+		org-download-heading-lvl nil
+		org-download-delete-image-after-download t
+		;;org-download-screenshot-method "flameshot gui --raw > %s"
+		org-download-screenshot-method "screencapture > %s"
+		org-download-image-org-width 600
+		org-download-annotate-function (lambda (link) "")))
+
+
+#+end_src
+*** org-bullets
+#+begin_src emacs-lisp 
+(use-package org-bullets
+  :straight t 
+  :config
+  (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+#+end_src
+
+** Helpful
+#+begin_src emacs-lisp 
+(use-package helpful
+  :straight t 
+  :bind
+  (("C-h f" . helpful-callable)
+   ("C-h v" . helpful-variable)
+   ("C-h k" . helpful-key)
+   ("C-c C-d" . helpful-at-point)
+   ("C-h F" . helpful-function)
+   ("C-h C" . helpful-command)))
+
+#+end_src
+
+** Spelling and grammar
+#+begin_src emacs-lisp
+
+(use-package flyspell
+  :straight t )
+
+#+end_src
+
+** Other
+*** Prettyfy
+#+begin_src emacs-lisp
+(defun my-pretty-unicode ()
+  "make some word or string show as pretty Unicode symbols"
+  (setq prettify-symbols-alist
+	'(
+	  ("#+begin_src" . ?Ξ) 
+	  ("#+end_src" . ?Ξ) 
+	  ("#+BEGIN_SRC" . ?Ξ) 
+	  ("#+END_SRC" . ?Ξ)
+	  (":PROPERTIES:" .?⚙)
+	  (":END:" .?☝)
+	  )))
+
+(add-hook 'org-mode-hook 'my-pretty-unicode)
+(global-prettify-symbols-mode 1)
+#+end_src
+
+*** SRC block colors
+#+begin_src emacs-lisp
+
+;; (custom-set-faces
+;;  '(org-block-begin-line
+;;    ((t (:underline "#333333" :foreground "#93BF6C" :background "#000000"))))
+;;  '(org-block
+;;    ((t (:background "#111111"))))
+;;  '(org-block-end-line
+;;    ((t (:overline "#333333" :foreground "#93BF6C" :background "#000000"))))) 
+
+#+end_src
+
+*** Timer in buffer
+#+begin_src emacs-lisp
+(defun countdown-start()
+  "Starts the org-countdown in a buffer"
+  (interactive)
+  (switch-to-buffer "countdown")
+  (countdown-mode)
+  (display-timer-in-buffer))
+
+(defun refresh-in-buffer-timer ()
+  (if (boundp 'org-timer-countdown-timer)
+      (if org-timer-countdown-timer
+	  (with-current-buffer (get-buffer "countdown")
+	    (let ((inhibit-read-only t))
+	      (erase-buffer)
+	      (insert (concat (org-timer-value-string) "\n")))))))
+
+(defun kill-timer-buffer ()
+  "Kills timer buffer"
+  (interactive)
+  (progn
+    (cancel-function-timers 'refresh-in-buffer-timer)
+    (kill-buffer "countdown")))
+
+(defun display-timer-in-buffer()
+  "Displays the clock"
+  (cancel-function-timers 'refresh-countdown-timer)
+  (run-at-time t 0.2 #'refresh-in-buffer-timer))
+
+(define-derived-mode countdown-mode org-mode "countdown"
+  (progn
+    (define-key countdown-mode-map (kbd "C-x k") 'kill-timer-buffer)
+    (define-key countdown-mode-map (kbd "C-c C-x ;") 'org-timer-set-timer)
+    (define-key countdown-mode-map (kbd "C-c C-x _") 'org-timer-stop)
+    (define-key countdown-mode-map (kbd "C-c C-x ,") 'org-timer-pause-or-continue)))
+
+;;(countdown-start)
+;;(list-timers)
+
+
+(global-set-key (kbd "C-c C-x M-c") 'countdown-start)
+
+#+end_src
+
+*** Timer gong
+#+begin_src emacs-lisp
+(setq org-clock-sound "~/.config/emacs/Bell.m4a") 
+#+end_src
+** Dired
+Dired makes an Emacs buffer containing a listing of a directory, and optionally some of its subdirectories as well. You can use the normal Emacs commands to move around in this buffer, and special Dired commands to operate on the listed files. Dired works with both local and remote directories.
+
+The Dired buffer is normally read-only, and inserting text in it is not allowed (however, the Wdired mode allows that, see Wdired). Ordinary printing characters such as d and x are redefined for special Dired commands. Some Dired commands mark or flag the current file (that is, the file on the current line); other commands operate on the marked files or on the flagged files. You first mark certain files in order to operate on all of them with one command. 
+*** Settings
+#+begin_src emacs-lisp
+(when (not (eq system-type 'darwin))
+  (use-package dired
+    :straight nil
+    :ensure nil
+    :commands (dired dired-jump)
+    :custom (dired-dwim-target t)
+    :bind (("C-x C-j" . dired-jump))
+    :config  (define-key dired-mode-map (kbd "b") 'dired-up-directory)
+    (define-key dired-mode-map (kbd "l") 'dired-find-file)))
+
+;; (use-package all-the-icons-dired
+;;   :straight t
+;;   :hook (dired-mode . all-the-icons-dired-mode))
+#+end_src
+*** Handle hidden files
+#+begin_src emacs-lisp
+(use-package dired-hide-dotfiles
+  :straight t
+  :hook (dired-mode . dired-hide-dotfiles-mode)
+  :config
+  ;;(evil-collection-define-key 'normal 'dired-mode-map
+  ;;  "H" 'dired-hide-dotfiles-mode)
+  )
+#+end_src
+*** pcre2el Regex Syntax Converter
+`pcre2el' or `rxt' (RegeXp Translator or RegeXp Tools) is a utility for working with regular expressions in Emacs, based on a recursive-descent parser for regexp syntax. In addition to converting (a subset of) PCRE syntax into its Emacs equivalent, it can do the following:
+
+#+begin_src emacs-lisp
+
+
+(use-package pcre2el
+  :straight t 
+  :init)
+
+#+end_src
+*** Dired Plus
+Dired+ (library dired+.el) extends functionalities provided by standard GNU Emacs libraries dired.el, dired-aux.el, and dired-x.el. The standard functions are all available, plus many more.
+
+Currently not on melpa, downloading and installing it from emacswiki "manually"
+
+#+begin_src emacs-lisp
+
+
+
+;; (use-package dired+
+;;   ;;:straight t 
+;;   :quelpa (dired+ :fetcher github :repo "emacsmirror/dired-plus"))
+
+
+;; (require 'url)
+;; (if (file-exists-p "~/.emacs.d/manual-packages/dired+.el")
+;;     nil
+;;   (condition-case nil
+;;       (url-copy-file "https://www.emacswiki.org/emacs/download/dired%2b.el" "~/.emacs.d/manual-packages/dired+.el")
+;;     ((debug error) nil)))
+
+
+
+
+;; (load "dired+")
+
+#+end_src
+
+*** Dired Narrow
+This package provides live filtering of files in dired buffers.  In general, after calling the respective narrowing function you type a filter string into the minibuffer.  After each change the changes automatically reflect in the buffer.  Typing C-g will cancel the narrowing and restore the original view, typing RET will exit the live filtering mode and leave the dired buffer in the narrowed state.  To bring it back to the original view, you can call `revert-buffer' (usually bound to `g').
+#+begin_src emacs-lisp  
+;;narrow dired to match filter
+(use-package dired-narrow
+  :straight t 
+  :bind (:map dired-mode-map
+	      ("/" . dired-narrow)))
+
+#+end_src
+
+*** Dired Subtree
+#+begin_src emacs-lisp  
+;;narrow dired to match filter
+(use-package dired-subtree
+  :straight t 
+  :after dired
+  :config
+  (bind-key "<tab>" 'dired-subtree-toggle dired-mode-map)
+  (bind-key "<backtab>" 'dired-subtree-cycle dired-mode-map))
+
+#+end_src
+(message "End ")
+
+*** Dired colorize untracked
+#+begin_src emacs-lisp
+  ;; (require 'vc)
+  ;; (require 'vc-git)
+
+  ;; (defface dired-untracked-face
+  ;;   '((t :foreground "gray50"))
+  ;;   "Face used to colorize untracked files in Dired."
+  ;;   :group 'dired)
+
+  ;; (defun dired--untracked-file-p (file)
+  ;;   "Return non-nil if FILE is untracked in Git."
+  ;;   (when (and file (file-exists-p file))
+  ;;     (let/ ((dir (file-name-directory (directory-file-name file)))
+  ;;            (git-root (ignore-errors (vc-git-root dir))))
+  ;;       (when git-root
+  ;;         (eq (ignore-errors (vc-git-state file)) 'unregistered)))))
+
+  ;; (defun dired-untracked--filename-bounds ()
+  ;;   "Return cons (START . END) of filename at point in Dired, or nil."
+  ;;   (save-excursion
+  ;;     (when (dired-move-to-filename nil)
+  ;;       (let/ ((start (point))
+  ;;              (end (or (next-single-property-change start 'dired-filename nil (line-end-position))
+  ;;                       (line-end-position))))
+  ;;         (cons start end)))))
+
+  ;; (defun dired-untracked--clear-overlays (&optional beg end)
+  ;;   (remove-overlays (or beg (point-min)) (or end (point-max)) 'dired-untracked t))
+
+  ;; (defun dired-colorize-untracked (&optional beg end)
+  ;;   "Colorize untracked files between BEG and END in current Dired buffer."
+  ;;   (interactive)
+  ;;   (unless (derived-mode-p 'dired-mode)
+  ;;     (user-error "Not a Dired buffer"))
+  ;;   (let ((inhibit-read-only t)
+  ;;         (beg (or beg (point-min)))
+  ;;         (end (or end (point-max))))
+  ;;     (save-excursion
+  ;;       (dired-untracked--clear-overlays beg end)
+  ;;       (goto-char beg)
+  ;;       (while (< (point) end)
+  ;;         (when (dired-move-to-filename nil)
+  ;;           (let/ ((bounds (dired-untracked--filename-bounds))
+  ;;                  (file (dired-get-filename nil t)))
+  ;;             (when (and bounds file (dired--untracked-file-p file))
+  ;;               (let ((ov (make-overlay (car bounds) (cdr bounds))))
+  ;;                 (overlay-put ov 'face 'dired-untracked-face)
+  ;;                 (overlay-put ov 'dired-untracked t))))))
+  ;;         (forward-line 1)))))
+
+  ;; (define-minor-mode dired-untracked-gray-mode
+  ;;   "Minor mode to colorize untracked files in Dired as gray."
+  ;;   :init-value nil
+  ;;   :lighter " Untracked→gray"
+  ;;   (if dired-untracked-gray-mode
+  ;;       (progn
+  ;;         (add-hook 'dired-after-readin-hook #'dired-colorize-untracked nil t)
+  ;;         (add-hook 'after-revert-hook #'dired-colorize-untracked nil t)
+  ;;         (dired-colorize-untracked))
+  ;;     (remove-hook 'dired-after-readin-hook #'dired-colorize-untracked t)
+  ;;     (remove-hook 'after-revert-hook #'dired-colorize-untracked t)
+  ;;     (let ((inhibit-read-only t))
+  ;;       (dired-untracked--clear-overlays))))
+#+end_src
+
+** Prettier
+manual
+#+begin_src emacs-lisp 
+
+
+(add-to-list 'load-path "~/.emacs.d/manual-packages/")
+
+#+end_src
+
+** Modes and packages
+*** Diminish
+"When we diminish a mode, we are saying we want it to continue doing its work for us, but we no longer want to be reminded of it. It becomes a night worker, like a janitor; it becomes an invisible man; it remains a component, perhaps an important one, sometimes an indispensable one, of the mechanism that maintains the day-people's world, but its place in their thoughts is diminished, usually to nothing. As we grow old we diminish more and more such thoughts, such people, usually to nothing." -- Will Mengarini
+
+This package implements hiding or abbreviation of the mode line displays (lighters) of minor-modes.
+#+begin_src emacs-lisp
+(use-package diminish
+  :straight t )
+#+end_src
+
+*** Wgrep
+Your personal local Emacs Lisp Package Archive (ELPA) with packages built on-the-fly directly from source.
+#+begin_src emacs-lisp
+(use-package wgrep
+  :straight t
+  :custom
+  (wgrep-enable-key "e")
+  (wgrep-auto-save-buffer t)
+  (wgrep-change-readonly-file t))
+
+#+end_src
+
+*** Ag
+Your personal local Emacs Lisp Package Archive (ELPA) with packages built on-the-fly directly from source.
+#+begin_src emacs-lisp
+(use-package wgrep-ag
+:straight t 
+:after ag)
+
+(use-package ag
+:straight t
+:custom
+(ag-highligh-search t)
+(ag-reuse-buffers t)
+(ag-reuse-window t)
+:bind
+("s-s p" . ag-project)
+("s-s d" . ag-dired))
+
+*** Rg
+#+begin_src emacs-lisp
+(use-package rg
+  :straight t 
+  :after wgrep
+  :config
+  (setq rg-group-result t)
+  (setq rg-hide-command t)
+  (setq rg-show-columns nil)
+  (setq rg-show-header t)
+  (setq rg-custom-type-aliases nil)
+  (setq rg-default-alias-fallback "all")
+
+  (rg-define-search prot/grep-vc-or-dir
+		    :query ask
+		    :format regexp
+		    :files "everything"
+		    :dir (let ((pr (projectile-project-root)))
+			   (if pr
+			       pr                         ; search root project dir
+			     default-directory))          ; or from the current dir
+		    :confirm prefix
+		    :flags ("--hidden -g !.git"))
+
+  ;;   (defun prot/rg-save-search-as-name ()
+  ;;     "Save `rg' buffer, naming it after the current search query.
+
+  ;; This function is meant to be mapped to a key in `rg-mode-map'."
+  ;;     (interactive)
+  ;;     (let ((pattern (car rg-pattern-history)))
+  ;;       (rg-save-search-as-name (concat "«" pattern "»"))))
+
+  :bind (("M-s g" . prot/grep-vc-or-dir)
+	 :map rg-mode-map
+	 ;;("s" . prot/rg-save-search-as-name)
+	 ("C-n" . next-line)
+	 ("C-p" . previous-line)
+	 ("M-n" . rg-next-file)
+	 ("M-p" . rg-prev-file))
+  )
+#+end_src
+*** Projectile
+#+begin_src emacs-lisp
+;; projectile
+(use-package projectile
+  :diminish projectile-mode
+  :config (projectile-mode)
+  :custom ((projectile-completion-system 'ivy))
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
+  :init
+  ;; NOTE: Set this to the folder where you keep your Git repos!
+  (when (file-directory-p "~/projects")
+    (setq projectile-project-search-path '("~/projects")))
+  (setq projectile-switch-project-action #'projectile-dired))
+
+;; (use-package projectile
+;;   :straight t 
+;;   :config
+;;   (projectile-global-mode)
+;;   ;;  (setq projectile-completion-system 'ivy)
+;;   )
+
+(use-package counsel-projectile
+  :straight t 
+  :config
+  ;;(counsel-projectile-on)
+  )
+;;(define-key projectile-mode-map (kbd "C-c s-p") 'projectile-command-map)
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+#+end_src
+*** Dumb jump
+#+begin_src emacs-lisp
+(use-package dumb-jump
+  :bind (("M-g o" . dumb-jump-go-other-window)
+	 ("M-g j" . dumb-jump-go)
+	 ("M-g x" . dumb-jump-go-prefer-external)
+	 ("M-g z" . dumb-jump-go-prefer-external-other-window))
+  :config ;;(setq dumb-jump-selector 'ivy) ;;
+  (setq dumb-jump-selector 'helm)
+  :straight t)
+
+#+end_src
+
+** Various
+*** Nov Mode (epub)
+nov.el provides a major mode for reading EPUB documents.
+
+Features:
+- Basic navigation (jump to TOC, previous/next chapter)
+- Remembering and restoring the last read position
+- Jump to next chapter when scrolling beyond end
+- Renders EPUB2 (.ncx) and EPUB3 (<nav>) TOCs
+- Hyperlinks to internal and external targets
+- Supports textual and image documents
+- View source of document files
+- Metadata display
+- Image rescaling
+
+  #+begin_src emacs-lisp
+
+
+(use-package nov 
+  :straight t 
+  :config
+  (setq  nov-variable-pitch nil)
+  (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode)
+               ))
+
+  #+end_src
+
+
+#+begin_src emacs-lisp
+;; (use-package ereader
+;;   :straight t 
+;;   :config 
+;;   ;; (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
+;; )
+#+end_src
+
+*** Engine mode (search engines)
+#+begin_src emacs-lisp
+(use-package engine-mode
+  :straight t 
+  :config
+  (progn
+    (engine-mode t)
+    (setq engine/browser-function 'eww-browse-url)
+    (defengine amazon
+      "http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=%s")
+
+    (defengine duckduckgo
+      "https://duckduckgo.com/?q=%s"
+      :keybinding "d")
+
+    (defengine github
+      "https://github.com/search?ref=simplesearch&q=%s"
+      :keybinding "b")
+
+
+    (defengine google
+      "http://www.google.com/search?ie=utf-8&oe=utf-8&q=%s"
+      :keybinding "g")
+
+    (defengine google-past-year
+      "http://www.google.com/search?ie=utf-8&oe=utf-8&q=%s&tbs=qdr:y"
+      :keybinding "y")
+
+    (defengine google-images
+      "http://www.google.com/images?hl=en&source=hp&biw=1440&bih=795&gbv=2&aq=f&aqi=&aql=&oq=&q=%s")
+
+    (defengine google-maps
+      "http://maps.google.com/maps?q=%s"
+      :browser 'browse-url-firefox
+      :docstring "Mappin' it up."
+      :keybinding "a")
+
+
+    (defengine project-gutenberg
+      "http://www.gutenberg.org/ebooks/search/?query=%s"
+      :keybinding "p")
+
+
+    (defengine rfcs
+      "http://pretty-rfc.herokuapp.com/search?q=%s")
+
+    (defengine stack-overflow
+      "https://stackoverflow.com/search?q=%s"
+      :keybinding "s")
+
+    (defengine ecosia
+      "https://www.ecosia.org/search?q=%s"
+      :keybinding "e")
+
+
+    (defengine twitter
+      "https://twitter.com/search?q=%s"
+      :keybinding "t")
+
+
+    (defengine wikipedia
+      "http://www.wikipedia.org/search-redirect.php?language=en&go=Go&search=%s"
+      :keybinding "w"
+      :docstring "Searchin' the wikis.")
+
+    (defengine wiktionary
+      "https://www.wikipedia.org/search-redirect.php?family=wiktionary&language=en&go=Go&search=%s")
+
+    (defengine wolfram-alpha
+      "http://www.wolframalpha.com/input/?i=%s")
+
+    (defengine youtube
+      "http://www.youtube.com/results?aq=f&oq=&search_query=%s"
+      :browser 'browse-url-firefox
+      :keybinding "y")
+
+    (defengine melpa
+      "https://melpa.org/#/?q=%s"
+      :browser 'browse-url-firefox
+      :keybinding "m")
+
+    (defengine bookfi
+      "http://en.bookfi.net/s/?q=%s"
+      :browser 'browse-url-firefox
+      :keybinding "k")
+
+    ))
+
+#+end_src
+
+#+RESULTS:
+: t
+
+*** Multiple Cursors
+#+begin_src emacs-lisp
+(use-package multiple-cursors
+  :straight t
+  :bind (
+	 ("C-S-c C-S-c" . mc/edit-lines)
+	 ("C->" . mc/mark-next-like-this)
+	 ("C-<" . mc/mark-previous-like-this)
+	 ("C-c C-<" . mc/mark-all-like-this)
+	 ("C-S-<mouse-1>" . mc/add-cursor-on-click))
+  :bind (:map region-bindings-mode-map
+	      ("a" . mc/mark-all-like-this)
+	      ("p" . mc/mark-previous-like-this)
+	      ("n" . mc/mark-next-like-this)
+	      ("P" . mc/unmark-previous-like-this)
+	      ("N" . mc/unmark-next-like-this)
+	      ("[" . mc/cycle-backward)
+	      ("]" . mc/cycle-forward)
+	      ("m" . mc/mark-more-like-this-extended)
+	      ("h" . mc-hide-unmatched-lines-mode)
+	      ("\\" . mc/vertical-align-with-space)
+	      ("#" . mc/insert-numbers) ; use num prefix to set the starting number
+	      ("^" . mc/edit-beginnings-of-lines)
+	      ("$" . mc/edit-ends-of-lines))
+  :init
+  (progn
+    ;; Temporary hack to get around bug # 28524 in emacs 26+
+    ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=28524
+    (setq mc/mode-line
+	  `(" mc:" (:eval (format ,(propertize "%-2d" 'face 'font-lock-warning-face)
+				  (mc/num-cursors)))))
+
+    (setq mc/list-file (locate-user-emacs-file "mc-lists"))
+
+    ;; Disable the annoying sluggish matching paren blinks for all cursors
+    ;; when you happen to type a ")" or "}" at all cursor locations.
+    (defvar modi/mc-blink-matching-paren--store nil
+      "Internal variable used to restore the value of `blink-matching-paren'
+    after `multiple-cursors-mode' is quit.")
+
+    ;; The `multiple-cursors-mode-enabled-hook' and
+    ;; `multiple-cursors-mode-disabled-hook' are run in the
+    ;; `multiple-cursors-mode' minor mode definition, but they are not declared
+    ;; (not `defvar'd). So do that first before using `add-hook'.
+    (defvar multiple-cursors-mode-enabled-hook nil
+      "Hook that is run after `multiple-cursors-mode' is enabled.")
+    (defvar multiple-cursors-mode-disabed-hook nil
+      "Hook that is run after `multiple-cursors-mode' is disabled.")
+
+    (defun modi/mc-when-enabled ()
+      "Function to be added to `multiple-cursors-mode-enabled-hook'."
+      (setq modi/mc-blink-matching-paren--store blink-matching-paren)
+      (setq blink-matching-paren nil))
+
+    (defun modi/mc-when-disabled ()
+      "Function to be added to `multiple-cursors-mode-disabled-hook'."
+      (setq blink-matching-paren modi/mc-blink-matching-paren--store))
+
+    (add-hook 'multiple-cursors-mode-enabled-hook #'modi/mc-when-enabled)
+    (add-hook 'multiple-cursors-mode-disabled-hook #'modi/mc-when-disabled)))
+
+(provide 'setup-multiple-cursors)
+
+;; * Mark one more occurrence
+;;
+
+#+end_src
+*** Eshell history definitions
+#+begin_src emacs-lisp
+(setq eshell-history-size 1000000
+      eshell-directory-name "~/.config/emacs/eshell")
+
+#+end_src
+
+*** Copy lines with C/M-y
+Copy lines (as many as prefix argument) in the kill ring.
+Ease of use features:
+- Move to start of next line.
+- Appends the copy on sequential calls.
+- Use newline as last char even on the last line of the buffer.
+- If region is active, copy its lines.
+
+  #+begin_src emacs-lisp
+(defun copy-line (arg)
+  "Copy lines (as many as prefix argument) in the kill ring.
+Ease of use features:
+- Move to start of next line.
+- Appends the copy on sequential calls.
+- Use newline as last char even on the last line of the buffer.
+- If region is active, copy its lines."
+  (interactive "p")
+  (let ((beg (line-beginning-position))
+	(end (line-end-position arg)))
+    (when mark-active
+      (if (> (point) (mark))
+          (setq beg (save-excursion (goto-char (mark)) (line-beginning-position)))
+	(setq end (save-excursion (goto-char (mark)) (line-end-position)))))
+    (if (eq last-command 'copy-line)
+	(kill-append (buffer-substring beg end) (< end beg))
+      (kill-ring-save beg end)))
+  (kill-append "\n" nil)
+  (beginning-of-line (or (and arg (1+ arg)) 2))
+  (if (and arg (not (= 1 arg))) (message "%d lines copied" arg)))
+
+(global-set-key (kbd "C-M-y") 'copy-line)
+
+
+(add-to-list 'custom-theme-load-path "~/.config/emacs/my-themes/")
+(load-theme 'dark-8-bit-sheep t)
+
+  #+end_src
+
+** Tempstuff
+
+#+begin_src emacs-lisp
+(use-package plantuml-mode
+  :straight t)
+
+(use-package diagram-preview
+  :straight (:type git :host github :repo "natrys/diagram-preview")
+  :ensure nil
+  :hook ((graphviz-dot-mode plantuml-mode mermaid-mode pikchr-mode d2-mode) . diagram-preview-mode))
+
+(progn
+  (define-key input-decode-map [?\C-i] [C-i])
+  (global-set-key (kbd "<C-i>") 'indent-region))
+
+(use-package company
+  :ensure t
+  :init (setq company-minimum-prefix-length 1
+	      company-idle-delay 0.0))
+
+
+(use-package lsp-mode
+  :straight t
+  :init
+  (setq lsp-keymap-prefix "M-L")
+  :hook ((clojure-mode . lsp)
+         (clojurec-mode . lsp)
+         (clojurescript-mode . lsp)
+	 (lsp-mode . lsp-enable-which-key-integration))
+  :config
+  (setq lsp-completion-enable-additional-text-edit nil
+ 	lsp-ui-sideline-enable nil
+	lsp-enable-indentiation nil
+	lsp-guess-root-without-session t
+	lsp-eldoc-enable-hover nil
+	lsp-enable-completion-at-point nil)
+
+  ;; add paths to your local installation of project mgmt tools, like lein
+  
+  (setenv "PATH" (concat
+		  "/usr/local/bin" path-separator
+		  (getenv "PATH")))
+  ;; (add-hook 'cider-mode-hook (lambda ()
+  ;; 			       ;;(remove-hook 'completion-at-point-functions #'cider-complete-at-point)
+  ;; 			       (add-to-list 'completion-at-point-functions #'cider-complete-at-point)
+  ;; 			       ))
+  (dolist (m '(clojure-mode
+	       clojurec-mode
+	       clojurescript-mode
+	       clojurex-mode))
+    (add-to-list 'lsp-language-id-configuration `(,m . "clojure")))) 
+
+
+
+;; (use-package lsp-ui
+;;   :straight t
+;;   :commands lsp-ui-mode)
+
+
+(setq lsp-enable-completion-at-point t)
+
+(setq cider-enrich-classpath t) 
+
+;; (use-package lsp-mode
+;;   :init
+;;   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+
+;;   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+;; 	 (clojure-mode . lsp)
+;; 	 ;; if you want which-key integration
+;; 	 (lsp-mode . lsp-enable-which-key-integration))
+;;   :config (setq lsp-completion-enable-additional-text-edit nil
+;; 		lsp-ui-sideline-enable nil
+;; 		lsp-enable-indentiation nil)
+
+;;   (add-hook 'cider-mode-hook (lambda () (remove-hook 'completion-at-point-functions #'cider-complete-at-point)))
+;;   :commands lsp)
+
+
+(use-package smart-compile
+  :straight t)
+
+(use-package java-snippets
+  :straight t)
+
+(use-package flycheck-gradle
+  :commands (flycheck-gradle-setup)
+  :init
+  (mapc
+   (lambda (x)
+     (add-hook x #'flycheck-gradle-setup))
+   '(java-mode-hook kotlin-mode-hook)))
+
+
+
+(use-package ant :straight t)
+(use-package mvn :straight t)
+
+;; mvn -Dmaven.test.skip=true package
+(use-package lsp-java
+  :straight t
+  :after lsp-mode
+  :config
+  (require 'lsp-java-boot)
+
+  ;; to enable the lenses
+  (add-hook 'lsp-mode-hook #'lsp-lens-mode)
+  (add-hook 'java-mode-hook #'lsp-java-lens-mode)
+  )
+
+(use-package groovy-mode
+  :straight t)
+
+(defun srk/maven-create-project ()
+  "Tidies the HTML content in the buffer using `tidy'"
+  (interactive)
+  (let ((org-name (read-string "Name of the package? "))
+	(name (read-string "Name of the project? "))
+	)
+    (shell-command (concat "mvn archetype:generate -DgroupId=" org-name " -DartifactId=" name " -DarchetypeArtifactId=maven-archetype-simple -DarchetypeVersion=1.4 -DinteractiveMode=false"))))
+
+(use-package embark
+  :straight t
+  :bind
+  (("C-." . embark-act)
+   ("M-." . embark-dwim)
+   ("C-h B" . embark-bindings))
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command))
+
+
+
+(when (not (eq system-type 'darwin))
+  (use-package fira-code-mode 
+    :straight t
+    :config (fira-code-mode-set-font)
+    :custom (fira-code-mode-disabled-ligatures '("[]" "#{" "#(" "#_" "#_(" "x")) ;; List of ligatures to turn off
+    :hook prog-mode))
+
+(setq-default mode-line-format
+	      (list "%e"
+		    mode-line-front-space
+		    "||||| "
+		    (if (eq system-type 'darwin)
+			'(:eval (shell-command-to-string
+				 "defaults read ~/Library/Preferences/com.apple.HIToolbox.plist AppleSelectedInputSources | command rg -e '\"KeyboardLayout Name\" = \"([^\"]*)\"' --replace '$1' --only-matching --color never | tr -d '\n'"))
+		      '(:eval (upcase (shell-command-to-string "xkblayout-state print \"%s\"" ))))
+		    " kbd |||||      "
+		    mode-line-position
+		    mode-line-frame-identification
+		    mode-line-buffer-identification
+		    " "
+		    "   "
+		    '(vc-mode vc-mode)
+		    "  "
+		    ;;mode-line-modes
+		    mode-line-misc-info
+		    mode-line-end-spaces
+		    "     "
+		    '(:eval (if (fboundp 'srk/slack-get-user-emoji) (srk/slack-get-user-emoji "Sami Kallinen") "--"))
+
+		    ))
+
+(run-with-timer 0 1 #'(lambda () (force-mode-line-update t)))
+
+(column-number-mode 1)
+
+;;  (global-set-key (kbd "C-x C-b") 'persp-ibuffer)
+
+(defun my-clojure-mode-hook ()
+  (hs-minor-mode)
+  (local-set-key (kbd "<backtab>") 'hs-show-all) ;; ctrl+shift+=
+  ;;(local-set-key (kbd "C-S-<tab>") 'hs-hide-all)   ;; ctrl+shift+-
+  (local-set-key (kbd "<tab>") 'hs-toggle-hiding))
+
+(global-set-key (kbd "C-S-<tab>") 'hs-hide-all)   ;; ctrl+shift+-
+
+(add-hook 'clojure-mode-hook 'my-clojure-mode-hook)
+
+(use-package websocket
+  :straight t
+  :after org-roam)
+
+
+
+(defun srk/get-project-root ()
+  (when (fboundp 'projectile-project-root)
+    (projectile-project-root)))
+
+(use-package consult
+  :straight t
+  :demand t
+  :custom
+  (consult-project-root-function #'srk/get-project-root)
+  ;; Replace bindings. Lazily loaded due by `use-package'.
+  :bind (;; C-c bindings (mode-specific-map)
+	 ;; ("C-c h" . consult-history)
+	 ;; ("C-c m" . consult-mode-command)
+	 ;; ("C-c b" . consult-bookmark)
+	 ;; ("C-c k" . consult-kmacro)
+	 ;; ;; C-x bindings (ctl-x-map)
+	 ;; ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+	 ;;("s-s b" . consult-buffer)                ;; orig. switch-to-buffer
+	 ;; ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+	 ;; ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+	 ;; ;; Custom M-# bindings for fast register access
+	 ;; ("M-#" . consult-register-load)
+	 ;; ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+	 ;; ("C-M-#" . consult-register)
+	 ;; ;; Other custom bindings
+	 ;; ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+	 ;; ("<help> a" . consult-apropos)            ;; orig. apropos-command
+	 ;; ;; M-g bindings (goto-map)
+	 ;; ("M-g e" . consult-compile-error)
+	 ;; ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+	 ;; ("M-g g" . consult-goto-line)             ;; orig. goto-line
+	 ;; ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+	 ;; ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+	 ;; ("M-g m" . consult-mark)
+	 ;; ("M-g k" . consult-global-mark)
+	 ;; ("M-g i" . consult-imenu)
+	 ;; ("M-g I" . consult-imenu-multi)
+	 ;; ;; M-s bindings (search-map)
+	 ("M-S f" . consult-find)
+	 ("M-S F" . consult-locate)
+	 ("M-S g" . consult-grep)
+	 ("M-S G" . consult-git-grep)
+	 ("M-S r" . consult-ripgrep)
+	 ("M-S l" . consult-line)
+	 ("M-S L" . consult-line-multi)
+	 ("M-S m" . consult-multi-occur)
+	 ("M-S k" . consult-keep-lines)
+	 ("M-S u" . consult-focus-lines)
+	 ;; ;; Isearch integration
+	 ;; ("M-s e" . consult-isearch-history)
+	 ;; :map isearch-mode-map
+	 ;; ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+	 ;; ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+	 ;; ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+	 ;; ("M-s L" . consult-line-multi)           ;; needed by consult-line to detect isearch
+	 ))
+
+
+(defun my-clj-format-before-save-hook ()
+  (when (eq major-mode 'clojure-mode)
+    (progn
+      (message "Formatting buffer!")
+      ;;(lsp-format-buffer)
+      )))
+
+(add-hook 'before-save-hook #'my-clj-format-before-save-hook)
+
+;;  (global-set-key (kbd "C-x C-b") 'persp-ibuffer)
+
+
+(vc-mode vc-mode)
+(setq auto-revert-check-vc-info nil)
+
+(use-package expand-region
+  :straight t
+  :bind ("C-=" . er/expand-region))
+
+(setq linum-format "%3d ")
+
+(use-package html-to-hiccup
+  :straight t)
+
+(set-face-attribute 'default nil :family "RobotoMono Nerd Font" :height 110 :weight 'normal)
+
+
+(use-package graphviz-dot-mode
+  :straight t
+  :config
+  (add-to-list 'org-babel-load-languages '(dot . t))
+
+  ;; (org-babel-do-load-languages
+  ;;  'org-babel-load-languages
+  ;;  '((dot . t)))
+  ;;    (add-to-list 'org-src-lang-modes (quote ("dot" . graphviz-dot)))
+  )
+
+
+
+(use-package hide-mode-line
+  :straight t
+  )
+
+(defun srk/presentation-setup ()
+  ;; Hide the mode line
+  (hide-mode-line-mode 1)
+  ;;    (set-face-attribute 'variable-pitch nil :font "Helvetica" :weight 'bold)
+  ;; Display images inline
+  (org-display-inline-images) ;; Can also use org-startup-with-inline-images
+
+  ;; Scale the text.  The next line is for basic scaling:
+  (setq text-scale-mode-amount 3)
+  (text-scale-mode 1))
+
+;; This option is more advanced, allows you to scale other faces too
+;; (setq-local face-remapping-alist '((default (:height 2.0) variable-pitch)
+;;                                    (org-verbatim (:height 1.75) org-verbatim)
+;;                                    (org-block (:height 1.25) org-block))))
+
+
+(defun srk/presentation-end ()
+  ;; Show the mode line again
+  (hide-mode-line-mode 0)
+  ;;    (set-face-attribute 'variable-pitch nil :font "Helvetica" :weight 'normal)
+
+  ;; Turn off text scale mode (or use the next line if you didn't use text-scale-mode)
+  (text-scale-mode 0)
+  ;; If you use face-remapping-alist, this clears the scaling:
+  (setq-local face-remapping-alist '((default variable-pitch default)))
+  )
+
+
+
+
+(setq byte-compile-warnings '(cl-functions))
+(setq package-native-compile t)
+(setq straight--native-comp-available t)
+
+(add-to-list 'kill-emacs-query-functions
+	     (lambda ()
+	       (if (not (org-clocking-p))
+		   t
+		 (if (y-or-n-p "Clock out and save?")
+		     (with-current-buffer (marker-buffer org-clock-marker)
+		       (org-clock-out)
+		       (save-buffer)
+		       t)
+		   (message "Aborting")
+		   nil))))
+
+(use-package tracking
+  :straight t)
+
+(use-package telega
+  :straight (telega :type git :host github :repo "zevlg/telega.el" :branch "master")
+  :commands telega
+  :config
+  (setq telega-user-use-avatars nil
+	telega-server-libs-prefix "/nix/store/dlckjjwq4xzd3c1mx0lrf7x36vrd6j98-tdlib-1.8.19/" ;; ugly hack find out how to utilize nix for the path. installed it imperatively with "nix-env -f channel:nixpkgs-unstable -iA tdlib"
+	;; todo. 1. figure out how to install unstable in my config.nix 2. figure out idiomatic way of linking here to right build.
+	telega-use-docker (not(eq system-type 'darwin )) 
+	telega-use-tracking-for '(any pin unread)
+	telega-chat-use-markdown-formatting t
+	telega-emoji-use-images t
+	telega-completing-read-function #'ivy-completing-read
+	telega-msg-rainbow-title nil
+	telega-chat-fill-column 75))
+
+
+
+
+
+(use-package emms
+  :straight t
+  :init
+  (setq mpv-default-options '("--opengl-backend=x11vk")))
+
+
+(use-package mpv
+  :straight t)
+
+(use-package anki-editor
+  :straight t
+  :after org
+  :bind (:map org-mode-map
+	      ("<f12>" . anki-editor-cloze-region-auto-incr)
+	      ("<f11>" . anki-editor-cloze-region-dont-incr)
+	      ("<f10>" . anki-editor-reset-cloze-number)
+	      ("<f9>"  . anki-editor-push-tree))
+  :hook (org-capture-after-finalize . anki-editor-reset-cloze-number) ; Reset cloze-number after each capture.
+  :config
+  (setq anki-editor-create-decks t ;; Allow anki-editor to create a new deck if it doesn't exist
+	anki-editor-org-tags-as-anki-tags t)
+
+  (defun anki-editor-cloze-region-auto-incr (&optional arg)
+    "Cloze region without hint and increase card number."
+    (interactive)
+    (anki-editor-cloze-region my-anki-editor-cloze-number "")
+    (setq my-anki-editor-cloze-number (1+ my-anki-editor-cloze-number))
+    (forward-sexp))
+  (defun anki-editor-cloze-region-dont-incr (&optional arg)
+    "Cloze region without hint using the previous card number."
+    (interactive)
+    (anki-editor-cloze-region (1- my-anki-editor-cloze-number) "")
+    (forward-sexp))
+  (defun anki-editor-reset-cloze-number (&optional arg)
+    "Reset cloze number to ARG or 1"
+    (interactive)
+    (setq my-anki-editor-cloze-number (or arg 1)))
+  (defun anki-editor-push-tree ()
+    "Push all notes under a tree."
+    (interactive)
+    (anki-editor-push-notes '(4))
+    (anki-editor-reset-cloze-number))
+  ;; Initialize
+  ;; Org-capture templates
+  ;;  (setq org-my-anki-file "/home/sakalli/notes/anki.org")
+  (add-to-list 'org-capture-templates
+	       '("a" "Anki basic"
+		 entry
+		 (file+headline org-my-anki-file "Dispatch Shelf")
+		 "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:ANKI_DECK: Dump\n:END:\n** Front\n%?\n** Back\n%x\n"))
+  (add-to-list 'org-capture-templates
+	       '("A" "Anki cloze"
+		 entry
+		 (file+headline org-my-anki-file "Dispatch Shelf")
+		 "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:ANKI_DECK: Dump\n:END:\n** Text\n%x\n** Extra\n"))
+  (anki-editor-reset-cloze-number))
+
+;; Allow Emacs to access content from clipboard.
+(setq x-select-enable-clipboard t
+      x-select-enable-primary t)
+
+;; org-download
+
+
+;; (define-key dired-mode-map "e" (lambda () (interactive) (eww-open-file (dired-get-file-for-visit))))
+;;  (global-set-key (kbd "s-c t") 'org-todo)
+
+
+(use-package vertico
+  :straight t
+  :init
+  (vertico-mode))
+
+(use-package savehist
+  :init (savehist-mode))
+
+(use-package marginalia
+  :straight t
+  :after vertico
+  :init (marginalia-mode))
+
+(setq org-edit-src-content-indentation 0
+      org-src-tab-acts-natively t
+      org-src-preserve-indentation t)
+
+
+
+(use-package lsp-treemacs :commands lsp-treemacs-errors-list)
+(use-package yasnippet
+  :straight t 
+  :config (yas-global-mode))
+;; (use-package hydra
+;;   :straight t)
+(use-package company
+  :straight t) 
+;; (use-package lsp-ui
+;;    :straight 
+;; (use-package dap-mode
+;;   :straight t
+;;   :after lsp-mode :config (dap-auto-configure-mode))
+;; (use-package dap-java
+;;   :straight nil)
+;; (use-package
+;;   helm-lsp
+;;   :straight t)
+;; (use-package helm
+;;   :straight t)
+
+;; optionally if you want to use debugger
+;;    (use-package dap-mode)
+;; (use-package dap-LANGUAGE) to load the dap adapter for your language
+
+;; optional if you want which-key integration
+;; (use-package which-key
+;;   :straight t
+;;   :config
+;;   (which-key-mode))
+
+(global-set-key (kbd "C-;") 'start-kbd-macro)
+(global-set-key (kbd "C-:") 'end-kbd-macro)
+
+(use-package elfeed-org
+  :straight t
+  :config
+  (elfeed-org) [[emacs/]] 
+  (setq rmh-elfeed-org-files (list "~/notes/elfeed.org")))
+
+(use-package elfeed
+  :straight t
+  :config
+  (global-set-key (kbd "C-x w") 'elfeed)
+  (add-hook 'elfeed-show-mode-hook 'olivetti-mode))
+
+(use-package elfeed-goodies
+  :straight t
+  :config ;;(elfeed-goodies/setup)
+  (setq elfeed-goodies/entry-pane-position 'bottom))
+
+(defun elfeed-play-with-mpv ()
+  "Play entry link with mpv."
+  (interactive)
+  (let ((entry (if (eq major-mode 'elfeed-show-mode) elfeed-show-entry (elfeed-search-selected :single)))
+	(quality-arg ""))
+    (mpv-start (elfeed-entry-link entry))))
+
+(defun play-filename-as-region-with-mpv ()
+  "Play file in path marked in region."
+  (interactive)
+  (let ((entry (buffer-substring (mark) (point)))
+	)
+    (mpv-start  entry)))
+
+(setq thing-at-point-file-name-chars "-~/[:alnum:]_.${}#%,:+ ")
+
+(defun play-filename-at-point-with-mpv ()
+  "Play file at point"
+  (interactive)
+  (let ((entry (buffer-substring (mark) (point)))
+	)
+    (mpv-start  entry)))
+
+(defvar elfeed-mpv-patterns
+  '("youtu\\.?be")
+  "List of regexp to match against elfeed entry link to know
+	    whether to use mpv to visit the link.")
+
+(defun elfeed-visit-or-play-with-mpv ()
+  "Play in mpv if entry link matches `elfeed-mpv-patterns', visit otherwise.
+	    See `elfeed-play-with-mpv'."
+  (interactive)
+  (let ((entry (if (eq major-mode 'elfeed-show-mode) elfeed-show-entry (elfeed-search-selected :single)))
+	(patterns elfeed-mpv-patterns))
+    (while (and patterns (not (string-match (car elfeed-mpv-patterns) (elfeed-entry-link entry))))
+      (setq patterns (cdr patterns)))
+    (if patterns
+	(elfeed-play-with-mpv)
+      (if (eq major-mode 'elfeed-search-mode)
+	  (elfeed-search-browse-url)
+	(elfeed-show-visit)))))
+
+(use-package embrace
+  :straight t
+  :bind (("C-c e" . embrace-commander))
+  :hook (
+	 ;;(clojure-mode . embrace-emacs-lisp-mode-hook)
+	 (emacs-lisp-mode . embrace-emacs-lisp-mode-hook)))
+
+(add-to-list 'load-path "/home/sakalli/.guix-profile/share/emacs/site-lisp/")
+
+
+
+(set-face-attribute 'default nil :family "RobotoMono Nerd Font") 
+(set-face-attribute 'fixed-pitch nil :family "RobotoMono Nerd Font")
+;;    (set-face-attribute 'variable-pitch nil :font "Helvetica")
+
+
+(use-package lorem-ipsum
+  :straight t)
+
+;; (use-package z80-mode
+;;   :straight t 
+;;   :quelpa (z80-mode :fetcher github :repo "SuperDisk/z80-mode"))
+
+;;(setq browse-url-browser-function 'eww-browse-url)
+
+
+
+;; (use-package emojify
+;;   :straight t 
+;;   :hook (after-init . global-emojify-mode))
+
+(use-package olivetti
+  :straight t )
+
+(global-set-key (kbd "M-p") 'scroll-up-line)
+(global-set-key (kbd "M-n") 'scroll-down-line)
+
+;; store all backup and autosave files in the tmp dir
+(setq backup-directory-alist
+      `((".*" . ,temporary-file-directory)))
+(setq auto-save-file-name-transforms
+      `((".*" ,temporary-file-directory t)))
+(use-package dockerfile-mode :straight t )
+
+(use-package command-log-mode :straight t )
+
+(setq erc-track-exclude '("#emacs")
+      erc-track-exclude-types '("JOIN" "NICK" "QUIT" "MODE" "AWAY")
+      erc-hide-list '("JOIN" "NICK" "QUIT" "MODE" "AWAY")
+      erc-track-exclude-server-buffer t)
+
+(use-package erc-hl-nicks
+  :straight t
+  :after erc
+  :config
+  (add-to-list 'erc-modules 'hl-nicks))
+
+(use-package erc-image
+  :ensure t
+  :after erc
+  :config
+  (setq erc-image-inline-rescale 300)
+  (add-to-list 'erc-modules 'image))
+
+(defvar bitlbee-password "")
+
+
+(defun i-wanna-be-social ()
+  "Connect to IM networks using bitlbee."
+  (interactive)
+  (e<<rc :server "localhost" :port 6667 :nick "user"))
+
+(defun bitlbee-identify ()
+  "If we're on the bitlbee server, send the identify command to the 
+									 &bitlbee channel."
+  (when (and (string= "localhost" erc-session-server)
+	     (string= "&bitlbee" (buffer-name)))
+    (erc-message "PRIVMSG" (format "%s identify %s" 
+				   (erc-default-target) 
+				   bitlbee-password))))
+;; (use-package ace-jump-mode
+;;   :straight t 
+;;   :bind ("M-SPC" . ace-jump-mode))
+
+(global-set-key (kbd "M-SPC") 'avy-goto-char-timer)
+
+;;    (setq browse-url-browser-function 'browse-url-firefox)
+(setq browse-url-chrome 'google-chrome)
+
+(when (eq system-type 'darwin)
+  (use-package osx-browse
+    :straight t
+    :config
+    (osx-browse-mode 1)))
+
+;;(setq browse-url-browser-function 'chrome-browse-url)
+;; what should this be on mac os to use chrome
+
+;; For macOS, you should modify the `browse-url-browser-function` setting to use Chrome. Here's what you can do:
+
+;; (when (eq system-type 'darwin)
+;;   (setq browse-url-browser-function 'browse-url-chrome)
+;;   (setq browse-url-chrome-program "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"))
+
+;; This configures Emacs to use Chrome as the default browser on macOS and sets the correct path to the Chrome executable. The Chrome application path is different on macOS compared to Linux.
+(setq browse-url-browser-function 'w3m-browse-url)
+
+(add-hook 'w3-parse-hooks 'w3-tidy-page)
+
+(when (eq system-type 'darwin)
+  (defvar w3-fast-parse-tidy-program "/usr/bin/tidy"))
+
+(defun w3-tidy-page (&optional buff)
+  "Use html tidy to clean up the HTML in the current buffer."
+  (save-excursion
+    (if buff
+	(set-buffer buff)
+      (setq buff (current-buffer)))
+    (widen)
+    (call-process-region (point-min) (point-max)
+			 w3-fast-parse-tidy-program
+			 t (list buff nil) nil ;nil nil nil;
+			 "--show-warnings" "no" "--show-errors" "0" "--force-output" "yes"
+			 "-quiet" "-clean" "-bare" "-omit"
+			 "--drop-proprietary-attributes" "yes" "--hide-comments" "yes"
+			 )))
+
+;; (use-package matrix-client
+;;   :quelpa (matrix-client :fetcher github :repo "alphapapa/matrix-client.el"
+;;                          :files (:defaults "logo.png" "matrix-client-standalone.el.sh")))
+
+(setq backup-directory-alist `(("." . "~/.saves")))
+(setq backup-by-copying t)
+(setq create-lockfiles nil)
+(global-set-key (kbd "C-M-z") (lambda () (interactive) (find-file "/ssh:voyager@hubble.websink.fi:~/scicloj-fiddle/src/scicloj-fiddle/core.clj")))
+(setq mark-ring-max 6)
+(setq global-mark-ring-max 6)
+
+;; (use-package all-the-icons-dired
+;;   :straight t 
+;;   :after (all-the-icons)
+;;   :quelpa (all-the-icons-dired :fetcher github :repo "wyuenho/all-the-icons-dired" :branch "monochrome")
+;;   :if (display-graphic-p)
+;;   :hook (
+;;          (dired-collapse-mode . all-the-icons-dired-mode)
+;;          (dired-mode . all-the-icons-dired-mode)
+;;          (treemacs-mode . all-the-icons-dired-mode)))
+
+(use-package all-the-icons
+  :straight t)
+
+(use-package vscode-icon
+  :straight t 
+  :commands (vscode-icon-for-file))
+
+;; (set-face-attribute 'default nil :family "RobotoMono Nerd Font" :height 110 :weight 'normal)
+;; (set-face-attribute 'org-block nil :height 100 :inherit 'fixed-pitch)
+;; (set-face-attribute 'org-table nil :height 100 :inherit 'fixed-pitch)
+
+;;   (defun set-buffer-variable-pitch ()
+;;     (interactive)
+;;     (variable-pitch-mode t)
+;;     (setq line-spacing 3)
+;;      (set-face-attribute 'org-table nil :inherit 'fixed-pitch)
+;;      (set-face-attribute 'org-code nil :inherit 'fixed-pitch)
+;;      (set-face-attribute 'org-block nil :inherit 'fixed-pitch)
+;;      (set-face-attribute 'org-block-background nil :inherit 'fixed-pitch)
+;;     )
+
+;;   (add-hook 'org-mode-hook 'set-buffer-variable-pitch)
+;;   (add-hook 'eww-mode-hook 'set-buffer-variable-pitch)
+;;   (add-hook 'markdown-mode-hook 'set-buffer-variable-pitch)
+;;   (add-hook 'Info-mode-hook 'set-buffer-variable-pitch)v
+  #+end_src
+
+
+
+
+
+
+** Here
+  #+begin_src emacs-lisp
+(message "myinit.org evaluation ends here")
+  #+end_src
+
+;;; secret entries
+"-----BEGIN PGP MESSAGE-----
+
+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
+9APs0CTNDmOQgjgbY5VyOPWiIA==
+=9phZ
+-----END PGP MESSAGE-----
+"
+;;; secret entries
+"-----BEGIN PGP MESSAGE-----
+
+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
+bXekFVECqnGx+MRks6iCm67a
+=2kUg
+-----END PGP MESSAGE-----
+"
+;;; secret entries
+"-----BEGIN PGP MESSAGE-----
+
+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
+pZKk3S2x+XL/rVBwsqIO
+=8Bpt
+-----END PGP MESSAGE-----
+"
+;;; secret entries
+"-----BEGIN PGP MESSAGE-----
+
+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
+aIOZPCzFXVpWD7FwcdHf
+=BbKF
+-----END PGP MESSAGE-----
+"
+
+* Config Upgrade plan
+** Here's a plan to clean up and restructure your =myinit.org= configuration:
+*Overall Goals:*
+1.  Enhance security by removing all sensitive data.
+2.  Improve maintainability by removing outdated/unused packages and code.
+3.  Increase clarity through better organization and comments.
+4.  Ensure the configuration is robust and error-free.
+5.  Integrate with 1Password for secure credential management.
+
+-----
+
+*Cleanup and Restructuring Plan for =myinit.org=*
+
+*Phase 1: Security and Sensitive Data Removal (Highest Priority)*
+
+1.  *API Keys & Tokens:*
+    *   *Identify:* Locate all API keys and tokens.
+        *   GPTel: OpenAI, Anthropic (Claude), Gemini, Kagi.
+        *   Slack: =xoxd-...= cookie and =xoxc-...= token.
+    *   *Action:*
+        *   Integrate with 1Password CLI (op) to securely retrieve API keys: =(setq gptel-api-key (string-trim (shell-command-to-string "op read op://Private/OpenAI/credential")))=
+        *   For Slack tokens/cookies, use 1Password CLI: =(setq slack-kpsystem-cookie (string-trim (shell-command-to-string "op read op://Private/Slack/cookie")))= and =(setq slack-kpsystem-token (string-trim (shell-command-to-string "op read op://Private/Slack/token")))=
+        *   Create a helper function for retrieving secrets:;; (defun srk/op-get-secret (vault item field)
+;;   (let ((op-cmd (if (eq system-type 'darwin) "op" "host-op")))
+;;     (string-trim (shell-command-to-string (format "%s read \"op://%s/%s/%s\"" op-cmd vault item field)))))
+=
+2.  *Passwords:*
+    *   *Identify:* =bitlbee-password=.
+    *   *Action:* Use 1Password CLI: =(setq bitlbee-password (srk/op-get-secret "Private" "Bitlbee" "password"))=
+3.  *PGP Encrypted Blocks:*
+    *   *Identify:* The =-----BEGIN PGP MESSAGE-----= blocks at the end.
+    *   *Action:* Remove these entirely from the =myinit.org=. Move all secrets to 1Password items and retrieve them using the 1Password CLI.
+4.  *Personal Information:*
+    *   *Identify:* Email addresses (=org-gcal-file-alist=, potentially =mu4e= if re-enabled), full names.
+    *   *Action:*
+        *   For =org-gcal=, store calendar IDs in 1Password and retrieve using =(setq org-gcal-client-id (srk/op-get-secret "Private" "GoogleCalendar" "client-id"))= and =(setq org-gcal-client-secret (srk/op-get-secret "Private" "GoogleCalendar" "client-secret"))=
+        *   For =mu4e= (if re-enabled), use 1Password CLI for credentials.
+5.  *File Paths:*
+    *   *Identify:* Absolute paths like =~/Downloads/...=, =~/notes/...=, =~/Mail=.
+    *   *Action:* Generalize where possible using =(expand-file-name "path/relative/to/home" "~/")= or relative to =user-emacs-directory=. For paths that must be specific (like =clojure-essential-ref-nov-epub-path=), ensure they are clearly documented or made configurable.
+
+*Phase 2: Pruning Outdated and Unused Content*
+
+1.  *Commented-out Packages:*
+    *   *Identify:* =elisa=, =mu4e=, =alert= (partially), =emmet-mode=, =language-detection=.
+    *   *Action:* Decide for each:
+        *   *Remove:* If no longer used or desired.
+        *   *Re-evaluate:* If potentially useful, uncomment, test, and integrate properly or remove. For =elisa=, address the macOS issue note.
+2.  *Commented-out Code Blocks/Lines:*
+    *   *Identify:* Mode line git branch, various individual lines.
+    *   *Action:* Review each. If it's dead code, remove it. If it's a reminder or an alternative, decide if it's still relevant.
+3.  *Package Review (Go through every =use-package= block):*
+    *   *Question:* "Do I still actively use this package?" "Is it working as expected?" "Has its functionality been superseded by another package I use or by Emacs built-ins?"
+    *   *Examples for scrutiny:*
+        *   =idle-highlight-mode=: Is this still needed with LSP/Cider highlighting?
+        *   =dired+=: Notes mention manual install; is it still current/needed?
+        *   =poly-R=, =poly-markdown=: Are these actively used with =polymode=?
+        *   =cider-storm=: Is this your primary debugger, or is =dap-mode= (if used) more common?
+        *   =tracking=, =telega=, =emms=, =mpv=: Still in use?
+        *   =fira-code-mode= (conditional): Is it configured correctly for your systems?
+        *   =all-the-icons-dired= vs =vscode-icon=: Choose one or ensure they work together.
+4.  *Custom Functions (=srk/...=):*
+    *   *Identify:* All functions prefixed with =srk/=.
+    *   *Action:* Review each one. Is it still used? Is there a built-in or package function that does the same? Can it be simplified? Add docstrings if missing.
+5.  *Configuration Values:*
+    *   *Identify:* Settings for packages that might be removed or whose defaults might now be better.
+    *   *Action:* If a package is removed, remove its configuration. Review =setq=s for relevance.
+
+*Phase 3: Restructuring and Refinement*
+
+1.  *Top-Level Org Headings:*
+    *   *Current:* =Emacs setup=, =Mail=, =Separedit=, =Stanmode=, =Magit=, etc.
+    *   *Suggestion:* Create more logical top-level categories. For example:
+        *   =* Core Emacs Settings= (e.g., =org-hide-emphasis-markers=, =css-indent-offset=, =mac-command-modifier=)
+        *   =* User Interface= (e.g., =which-key=, =golden-ratio=, =spacious-padding=, =treemacs=, theme-related settings if any were in =myinit.org=)
+        *   =* Org Mode= (Consolidate all Org-related packages and settings here)
+            *   =** Core Org Settings=
+            *   =** Org Babel=
+            *   =** Org Agenda & Calendar= (org-gcal)
+            *   =** Org Roam & UI=
+            *   =** Org Capture=
+            *   =** Org Export= (ox-pandoc)
+            *   =** Other Org Extensions= (org-tree-slide, org-download, org-bullets)
+        *   =* Programming Languages=
+            *   =** General Programming Tools= (yasnippet, flycheck, expand-region, iedit)
+            *   =** Clojure= (clojure-mode, cider, clj-refactor, paredit, zprint, clay, neil, etc.)
+            *   =** Web Development= (js2-mode, rjsx-mode, web-mode, tide, markdown-mode, htmlize)
+            *   =** Other Languages= (nix-mode, stan-mode, R/ESS, sparql-mode, yaml-mode)
+            *   =** Java/Groovy= (if keeping lsp-java, groovy-mode etc.)
+        *   =* Tools & Utilities=
+            *   =** File Management= (dired extensions, projectile)
+            *   =** Version Control= (magit)
+            *   =** Communication & Feeds= (slack, ement, mastodon, elfeed, telega)
+            *   =** AI & LLMs= (gptel, gpt-helper - if kept)
+            *   =** Searching= (ag, rg, consult)
+            *   =** Notes & Knowledge= (denote)
+            *   =** PDF & Documents= (pdf-tools, nov)
+            *   =** Shell & Terminal= (vterm, eshell settings)
+            *   =** Productivity= (keyfreq, 1password helpers)
+        *   =* Secrets Management= (New section for 1Password integration)
+        *   =* Deprecated/Testing= (A place to temporarily put things you're unsure about)
+2.  *=use-package= Structure:*
+    *   Ensure consistent use of keywords: =:straight t= (or specific recipe), =:defer t= (where appropriate), =:init=, =:config=, =:custom=, =:bind=, =:hook=.
+    *   Group related =setq=s within the =:init= or =:config= block of the relevant =use-package= declaration.
+3.  *Code Block Languages:*
+    *   Ensure all Emacs Lisp code blocks are correctly tagged: =#+begin_src emacs-lisp=.
+4.  *Comments:*
+    *   Remove outdated or obvious comments.
+    *   Add comments to explain /why/ a particular setting is chosen, especially for non-obvious configurations or personal workarounds.
+5.  *Alphabetization (Optional):*
+    *   Within sections, consider alphabetizing =use-package= blocks for easier navigation.
+
+*Phase 4: 1Password Integration*
+
+*Phase 5: Testing and Finalization*
+
+1.  *Incremental Changes:* Apply changes in small, logical chunks.
+2.  *Version Control:* Use Git. Commit after each significant step (e.g., "Removed API keys", "Integrated 1Password", "Refactored Org Mode section").
+3.  *Testing:*
+    *   After each commit, restart Emacs or reload the configuration.
+    *   Check the =*Messages*= buffer for errors or warnings during startup.
+    *   Test the functionality of packages whose configurations were changed.
+4.  *Linting:*
+    *   Consider using =checkdoc= on custom Elisp functions.
+5.  *Review:* Read through the entire cleaned-up =myinit.org= for clarity and consistency.
+
+-----
+
+This plan should provide a good roadmap. Remember to back up your =myinit.org= before beginning.
+
+** Plan for small, atomic, daily changes. The idea is to pick one small task each morning, complete it, ensure Emacs is still working correctly, and commit the change.
+
+-----
+
+/Iterative Cleanup and Restructuring Plan for =myinit.org=/
+
+*Guiding Principles for Daily Work:*
+1.  *Atomic Change:* Focus on one very specific item.
+2.  *Test:* After each change, reload your Emacs config (or restart Emacs) and check for errors in =*Messages*=. Test the specific functionality touched.
+3.  *Commit:* Use clear, descriptive commit messages for each daily change.
+4.  *Working State:* Ensure Emacs is left in a fully working state at the end of each session.
+
+-----
+
+*Phase 1: 1Password CLI Integration and Security Enhancement (Iterative)*
+
+#+CAPTION: Daily Tasks for Phase 1
+#+ATTR_HTML: :border 2 :rules all :frame border
+| Day | Morning Task                                                                  | Details                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+|-----+-------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1   | Setup 1Password CLI helper functions                                          | Create =srk/op-get-secret=, =srk/op-authenticated-p=, and =srk/ensure-op-authenticated= functions at the top of your config. Add =after-init-hook= for authentication check. Create =srk/op-secrets-cache= and =srk/op-get-secret-cached=. Test that 1Password CLI is working by running a simple command.                                                                                                                                                                                                                |
+| 2   | Secure GPTel OpenAI API Key                                                   | Create a "OpenAI" item in 1Password with a "credential" field. Update config to use =(setq gptel-api-key (srk/op-get-secret-cached "Private" "OpenAI" "credential"))=. Test GPTel with OpenAI.                                                                                                                                                                                                                                                                                                                          |
+| 3   | Secure GPTel Anthropic (Claude) Key                                           | Create a "Anthropic" item in 1Password with a "credential" field. Modify the =gptel-make-anthropic= call to use =(srk/op-get-secret-cached "Private" "Anthropic" "credential")=. Test.                                                                                                                                                                                                                                                                                                                                   |
+| 4   | Secure GPTel Gemini Key                                                       | Create a "Gemini" item in 1Password with a "credential" field. Modify the =gptel-make-gemini= call to use =(srk/op-get-secret-cached "Private" "Gemini" "credential")=. Test.                                                                                                                                                                                                                                                                                                                                            |
+| 5   | Secure GPTel Kagi Key                                                         | Create a "Kagi" item in 1Password with a "credential" field. Modify the =gptel-make-kagi= call to use =(srk/op-get-secret-cached "Private" "Kagi" "credential")=. Test.                                                                                                                                                                                                                                                                                                                                                  |
+| 6   | Secure Slack Token/Cookie                                                     | Create a "Slack" item in 1Password with "cookie" and "token" fields. Update Slack config to use =(srk/op-get-secret-cached "Private" "Slack" "cookie")= and =(srk/op-get-secret-cached "Private" "Slack" "token")=. Test Slack.                                                                                                                                                                                                                                                                                          |
+| 7   | Secure =bitlbee-password=                                                     | Create a "Bitlbee" item in 1Password with a "password" field. Update =bitlbee-password= to use =(srk/op-get-secret-cached "Private" "Bitlbee" "password")=. Test if bitlbee still works.                                                                                                                                                                                                                                                                                                                                 |
+| 8   | Remove one PGP Encrypted Block                                                | Decrypt the first PGP block. Create appropriate 1Password items for any secrets it contains. Delete the block from =myinit.org=.                                                                                                                                                                                                                                                                                                                                                                                          |
+| 9-N | Remove subsequent PGP Encrypted Blocks (repeat as needed)                     | Decrypt and remove each PGP block, moving secrets to 1Password.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| N+1 | Secure =org-gcal-file-alist= privacy                                          | Create a "GoogleCalendar" item in 1Password with fields for each calendar ID and client credentials. Update =org-gcal= config to use =(srk/op-get-secret-cached "Private" "GoogleCalendar" "client-id")= and =(srk/op-get-secret-cached "Private" "GoogleCalendar" "client-secret")=. Test calendar sync.                                                                                                                                                                                                                 |
+| N+2 | Review file paths for generalization (e.g., =clojure-essential-ref-nov-epub-path=) | Change absolute paths like =~/Downloads/...= to use =(expand-file-name "relative/path" "~/")=. Document any paths that must remain specific.                                                                                                                                                                                                                                                                                                                                                                      |
+
+*Phase 2: Pruning Outdated and Unused Content (Iterative)*
+
+#+CAPTION: Daily Tasks for Phase 2
+#+ATTR_HTML: :border 2 :rules all :frame border
+| Day | Morning Task                                                   | Details                                                                                                                                |
+|-----+----------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------|
+| P1  | Review commented-out =elisa=                                   | Decide: Remove or Fix & Integrate (address macOS note). If removing, delete the =use-package= block.                                  |
+| P2  | Review commented-out =mu4e=                                    | Decide: Remove or Fix & Integrate. If keeping, ensure all sensitive data (like passwords/server details) is handled via 1Password CLI. |
+| P3  | Review commented-out =alert= (partial)                         | Decide: Fully integrate with sound or remove the osx-notifier customization if alert itself isn't heavily used.                        |
+| P4  | Review commented-out =emmet-mode=                              | Decide: Remove or Integrate.                                                                                                           |
+| P5  | Review commented-out =language-detection=                      | Decide: Remove or Integrate.                                                                                                           |
+| P6  | Review one section of miscellaneous commented code             | Pick a small, self-contained commented-out code block (e.g., the mode line git branch). Decide: Remove or Refine & Uncomment.         |
+| P7  | Review one =use-package= block: e.g., =idle-highlight-mode=    | Ask: "Still used? Superseded? Working?" Act accordingly.                                                                               |
+| P8  | Review one =use-package= block: e.g., =dired+=                 | (Manual install note) Is it current? Still needed?                                                                                     |
+| P9  | Review 2-3 =srk/...= custom functions                          | Docstrings? Still used? Can be simplified or replaced?                                                                                 |
+| ... | ... (continue reviewing packages & custom functions one by one) | For each, decide to keep, refine, or remove.                                                                                           |
+
+*Phase 3: Restructuring and Refinement (Iterative)*
+
+/First, sketch your desired new Org heading structure on paper or in a separate file./
+
+#+CAPTION: Daily Tasks for Phase 3
+#+ATTR_HTML: :border 2 :rules all :frame border
+| Day | Morning Task                                                                 | Details                                                                                                                                                                                                                                                          |
+|-----+------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| R1  | Create new top-level "Secrets Management" heading.                           | Move all the 1Password helper functions under this heading. Ensure they are within a =#+begin_src emacs-lisp= block. Test.                                                                                                                                        |
+| R2  | Create new top-level "Core Emacs Settings" heading.                          | Move 1-2 general =setq=s (e.g., =org-hide-emphasis-markers=, =css-indent-offset=) from their current location to under this new heading. Ensure they are within a =#+begin_src emacs-lisp= block. Test.                                                          |
+| R3  | Create new "User Interface" heading.                                         | Move the =use-package which-key= block under it. Test.                                                                                                                                                                                                           |
+| R4  | Move =use-package golden-ratio= to "User Interface".                         | Test.                                                                                                                                                                                                                                                            |
+| R5  | Start "Org Mode" section: Create "Org Mode" -> "* Core Org Settings"         | Move a few core Org =setq=s here. Test.                                                                                                                                                                                                                          |
+| R6  | Move =use-package org-gcal= to "Org Mode" -> "* Org Agenda & Calendar".     | Create the subheading if it doesn't exist. Test agenda.                                                                                                                                                                                                          |
+| R7  | Consolidate one =use-package= block's related =setq=s.                       | Example: Find all =setq=s related to =projectile= that are outside its =use-package= block and move them into its =:init= or =:config= section. Test.                                                                                                            |
+| ... | ... (continue moving 1-2 items per day into the new structure)               | Focus on moving one package or a few related settings at a time. Always test org-babel tangling if you move blocks around.                                                                                                                                        |
+| RN  | Review comments in one restructured section.                                 | Add explanatory comments where needed, remove obvious/outdated ones.                                                                                                                                                                                             |
+
+*Phase 4: Testing and Finalization (Ongoing)*
+
+/This phase is integrated into each daily task./
+ *Daily:* After each small change, restart Emacs (or reload config) and check =*Messages*=. Test the specific functionality.
+ *Weekly/Bi-weekly (Optional):* Dedicate a slightly longer session to a more thorough review of changes made during the week and do broader testing.
+ *End of Major Restructuring:* Once a significant portion of the restructuring is done, do a full read-through of the =myinit.org= file.
+
+-----
+
+This iterative approach will make the task less daunting and reduce the risk of breaking your configuration significantly at any one time. Good luck!
+
+** Todolinst
+*** Initial Setup (Do Once Before Starting)
+- [X] TODO Backup: Make a full backup of your =~/.config/emacs= directory.
+- [X] TODO Git: Ensure your =~/.config/emacs= directory is a Git repository and the current state is committed.
+- [X] TODO 1Password CLI: Verify 1Password CLI (op) is installed and working. Run =op --version= to confirm.
+- [X] TODO 1Password Authorization: Test =op signin= to ensure you can authenticate with your 1Password account.
+- [X] TODO 1Password Vaults: Identify the vault name (e.g., "Private") where you'll store your secrets.
+
+*** Phase 1: 1Password Integration and Security Enhancement
+**** 1Password Helper Functions
+- [X] TODO Create Helper Functions - Elisp: In =myinit.org= (near the top), add:
+  #+begin_src emacs-lisp
+  ;; 1Password integration
+  ;; (defun srk/op-get-secret (vault item field)
+  ;;   "Get a secret from 1Password CLI.
+  ;; VAULT is the vault name, ITEM is the item name, FIELD is the field name."
+  ;;   (string-trim (shell-command-to-string 
+  ;;                 (format "op read \"op://%s/%s/%s\"" vault item field))))
+  
+  ;; (defun srk/op-authenticated-p ()
+  ;;   "Check if 1Password CLI is authenticated."
+  ;;   (= 0 (call-process-shell-command "op user list >/dev/null 2>&1")))
+  
+  ;; (defun srk/ensure-op-authenticated ()
+  ;;   "Ensure 1Password CLI is authenticated."
+  ;;   (unless (srk/op-authenticated-p)
+  ;;     (message "1Password CLI is not authenticated. Run 'op signin' in a terminal.")))
+  
+  ;; ;; Cache for 1Password secrets
+  ;; (defvar srk/op-secrets-cache (make-hash-table :test 'equal)
+  ;;   "Cache for 1Password secrets.")
+  
+  ;; (defun srk/op-get-secret-cached (vault item field)
+  ;;   "Get a secret from 1Password CLI with caching.
+  ;; VAULT is the vault name, ITEM is the item name, FIELD is the field name."
+  ;;   (let ((cache-key (format "%s/%s/%s" vault item field)))
+  ;;     (or (gethash cache-key srk/op-secrets-cache)
+  ;;         (puthash cache-key 
+  ;;                  (srk/op-get-secret vault item field)
+  ;;                  srk/op-secrets-cache))))
+  
+  ;; Check authentication status on startup
+  ;; (add-hook 'after-init-hook #'srk/ensure-op-authenticated)
+  #+end_src
+- [X] TODO Test Helper Functions: Restart Emacs. Check =*Messages*= for errors. Run =M-: (srk/op-authenticated-p)= to verify 1Password authentication.
+
+**** GPTel API Keys
+- [X] TODO Create 1Password OpenAI Item: Create an item named "OpenAI" in your 1Password vault with a field named "credential" containing your API key.
+- [ ] TODO OpenAI Key - Elisp: In =myinit.org= (=gptel= section), change =(setq gptel-api-key "YOUR_KEY")= to =(setq gptel-api-key (srk/op-get-secret-cached "Employee" "OpenAI" "password"))=.
+
+- [X] TODO Verify OpenAI: Restart Emacs. Test a GPTel query using OpenAI. Check =*Messages*= for errors.
+- [X] TODO Create 1Password Anthropic Item: Create an item named "Anthropic" in your 1Password vault with a field named "credential" containing your API key.
+- [X] TODO Anthropic Key - Elisp: Modify the =gptel-make-anthropic= call: change =:key "sk-ant-..."= to =:key (srk/op-get-secret-cached "Private" "Anthropic" "credential")=.
+- [X] TODO Verify Anthropic: Restart Emacs. Test GPTel with Claude.
+- [X] TODO Create 1Password Gemini Item: Create an item named "Gemini" in your 1Password vault with a field named "credential" containing your API key.
+- [X] TODO Gemini Key - Elisp: Modify =gptel-make-gemini=: change =:key "AIza..."= to =:key (srk/op-get-secret-cached "Private" "Gemini" "credential")=.
+- [X] TODO Verify Gemini: Restart Emacs. Test GPTel with Gemini.
+- [X] TODO Create 1Password Kagi Item: Create an item named "Kagi" in your 1Password vault with a field named "credential" containing your API key.
+- [X] TODO Kagi Key - Elisp: Modify =gptel-make-kagi=: change =:key "EQBAV..."= to =:key (srk/op-get-secret-cached "Private" "Kagi" "credential")=.
+- [X] TODO Verify Kagi: Restart Emacs. Test GPTel with Kagi.
+
+**** Slack Credentials
+- [ ] TODO Create 1Password Slack Item: Create an item named "Slack" in your 1Password vault with fields named "cookie" and "token" containing your Slack credentials.
+- [ ] TODO Update Slack Config: In =myinit.org= (=slack= =use-package= block), change =:cookie "xoxd-..."= to =:cookie (srk/op-get-secret-cached "Private" "Slack" "cookie")= and =:token "xoxc-..."= to =:token (srk/op-get-secret-cached "Private" "Slack" "token")=.
+- [ ] TODO Verify Slack: Restart Emacs. Test Slack functionality (connecting, sending/receiving messages).
+
+**** Bitlbee Password
+- [ ] TODO Create 1Password Bitlbee Item: Create an item named "Bitlbee" in your 1Password vault with a field named "password" containing your Bitlbee password.
+- [ ] TODO Update Bitlbee Config: In =myinit.org= (Bitlbee/ERC section), change =(defvar bitlbee-password "")= to =(defvar bitlbee-password (srk/op-get-secret-cached "Private" "Bitlbee" "password"))=. (Or adjust loading order / function).
+- [ ] TODO Verify Bitlbee: Restart Emacs. Test Bitlbee connection and identification if you use it.
+
+**** PGP Encrypted Blocks
+- [ ] TODO Decrypt PGP Block 1: Manually decrypt the first =-----BEGIN PGP MESSAGE-----...-----END PGP MESSAGE-----= block.
+- [ ] TODO Store Secrets from PGP Block 1: Create appropriate items in 1Password for any secrets found in the decrypted block.
+- [ ] TODO Delete PGP Block 1: Remove this PGP block entirely from =myinit.org=.
+- [ ] TODO Verify Emacs Load (PGP 1): Restart Emacs. Check =*Messages*= for errors.
+- [ ] TODO Decrypt PGP Block 2: Repeat for the second PGP block.
+- [ ] TODO Store/Delete PGP Block 2 & Verify.
+- [ ] TODO Decrypt PGP Block 3: Repeat for the third PGP block.
+- [ ] TODO Store/Delete PGP Block 3 & Verify.
+- [ ] TODO Decrypt PGP Block 4: Repeat for the fourth PGP block.
+- [ ] TODO Store/Delete PGP Block 4 & Verify.
+
+**** Personal Information Review
+- [ ] TODO Create 1Password GoogleCalendar Item: Create an item named "GoogleCalendar" in your 1Password vault with fields for "client-id", "client-secret", and any calendar IDs you use.
+- [ ] TODO Update org-gcal-file-alist: Update =org-gcal= configuration to retrieve credentials from 1Password: =(setq org-gcal-client-id (srk/op-get-secret-cached "Private" "GoogleCalendar" "client-id"))= and =(setq org-gcal-client-secret (srk/op-get-secret-cached "Private" "GoogleCalendar" "client-secret"))=.
+- [ ] TODO Update Calendar IDs: For each calendar in =org-gcal-file-alist=, store the ID in 1Password and retrieve it with =(srk/op-get-secret-cached "Private" "GoogleCalendar" "calendar1-id")=.
+- [ ] TODO Verify org-gcal: Test =org-gcal-sync= and agenda functionality.
+
+**** File Path Generalization
+- [ ] TODO Generalize =clojure-essential-ref-nov-epub-path=: Change to use =(expand-file-name ... "~/")=.
+- [ ] TODO Verify Path (clj-ref-nov): If package used, test functionality.
+- [ ] TODO Generalize =denote-directory=: Change to use =(expand-file-name ... "~/")=.
+- [ ] TODO Verify Denote: Test Denote functionality.
+- [ ] TODO Generalize =org-download-image-dir=: Change to use =(expand-file-name ... "~/")=.
+- [ ] TODO Verify Org Download: Test org-download.
+- [ ] TODO Review =org-agenda-files= paths: Ensure paths use =(expand-file-name ... "~/")=.
+- [ ] TODO Verify Agenda: Test org-agenda.
+- [ ] TODO Review =org-refile-targets= paths: Apply =(expand-file-name ...)=.
+- [ ] TODO Verify Refile: Test org-refile.
+- [ ] TODO Review =org-capture-templates= file paths: Apply =(expand-file-name ...)=.
+- [ ] TODO Verify Capture: Test org-capture.
+- [ ] TODO Review =srk/find-or-switch-file= paths: Apply =(expand-file-name ...)=.
+- [ ] TODO Verify Shortcuts: Test these custom file-opening shortcuts.
+- [ ] TODO Review =org-plantuml-jar-path=: Change to use =(expand-file-name ... "~/")= or =executable-find=.
+- [ ] TODO Verify PlantUML: Test PlantUML export/babel block.
+- [ ] TODO Review =org-clock-sound=: Change to use =(expand-file-name ... "~/")=.
+- [ ] TODO Verify Clock Sound: Test if clock sound plays.
+
+*** Phase 2: Pruning Outdated and Unused Content (Iterative)
+**** Commented-out Packages
+- [ ] TODO Review =elisa= (commented): Decide: Keep or Remove. If removing, delete block. If keeping, uncomment, address macOS note, test.
+- [ ] TODO Verify Emacs Load/Elisa.
+- [ ] TODO Review =mu4e= (commented): Decide. If removing, delete section. If keeping, uncomment, handle secrets via 1Password, test.
+- [ ] TODO Verify Emacs Load/mu4e.
+- [ ] TODO Review =alert= (osx-notifier part commented): Decide if customization is used.
+- [ ] TODO Verify Alert (if changed).
+- [ ] TODO Review =emmet-mode= (commented): Decide. Remove or uncomment and test.
+- [ ] TODO Verify Emacs Load/Emmet.
+- [ ] TODO Review =language-detection= (commented): Decide. Remove or uncomment and test.
+- [ ] TODO Verify Emacs Load/LangDetect.
+
+**** Commented-out Code Blocks/Lines
+- [ ] TODO Review Git Branch Mode Line (commented): At top of =myinit.org=. Decide: Remove or integrate.
+- [ ] TODO Verify Emacs Load.
+- [ ] TODO Review =(setq )= (empty setq): Near =(setq css-indent-offset 2)=. Delete.
+- [ ] TODO Verify Emacs Load.
+- [ ] TODO Review =httphl-mode= Font Lock Comments: Below =httphl-mode= definition. Notes or dead code?
+- [ ] TODO Verify Emacs Load.
+- [ ] TODO Review Org SRC Block Colors (commented): =(custom-set-faces ...)= for =org-block-begin-line=. Decide.
+- [ ] TODO Verify Org Display.
+
+**** Specific Package Review (One package at a time)
+- [ ] TODO Package: =clojure-essential-ref-nov= (in "Here" block): Still using? If not, remove =use-package=.
+- [ ] TODO Verify (clj-ref-nov): Emacs load.
+- [ ] TODO Package: =separedit= (appears twice): Confirm use. Remove duplicate commented block.
+- [ ] TODO Verify (separedit): Emacs load. Test if kept.
+- [ ] TODO Package: =stan-mode= (appears twice): Confirm use. Remove duplicate commented block.
+- [ ] TODO Verify (stan-mode): Emacs load. Test if kept.
+- [ ] TODO Package: [Package Name]: Ask: "Actively used? Working? Superseded?" Action: Remove or refine.
+- [ ] TODO Verify ([Package Name]): Restart Emacs. Test if kept/modified.
+
+*** Custom Functions Review (=srk/...=)
+- [ ] TODO Function: =pprint-cider-eval-sexp-up-to-point=: Actively used? Cider built-in alternative? Docstring.
+- [ ] TODO Verify (pprint-cider): Test in Clojure buffer if kept.
+- [ ] TODO Function: =srk/occur-open-buffers=: Used? Docstring.
+- [ ] TODO Verify (srk/occur): Test if kept.
+- [ ] TODO Function: [Function Name]: Ask: "Still used? Relevant? Clear docstring?" Action: Remove or improve.
+- [ ] TODO Verify ([Function Name]): Test function if kept/changed.
+
+*** Phase 3: Restructuring and Refinement (Iterative)
+*Before starting: Sketch your desired new Org heading structure (e.g., Secrets Management, Core Emacs, UI, Org Mode, Programming, Tools).*
+
+**** Creating New Structure & Moving Items
+- [ ] TODO Create "Secrets Management" Heading: Add =* Secrets Management=.
+- [ ] TODO Move 1Password Helper Functions: Cut & paste under new heading in a src block.
+- [ ] TODO Verify (1Password helpers): Tangle/reload. Test a secret retrieval.
+- [ ] TODO Create "Core Emacs Settings" Heading: Add =* Core Emacs Settings=.
+- [ ] TODO Move =org-hide-emphasis-markers=: Cut & paste under new heading in a src block.
+- [ ] TODO Verify (emphasis markers): Tangle/reload. Check Org display.
+- [ ] TODO Move =css-indent-offset=: Cut & paste under "Core Emacs Settings".
+- [ ] TODO Verify (css-indent): Tangle/reload. Check CSS indentation.
+- [ ] TODO Create "User Interface" Heading: Add =* User Interface=.
+- [ ] TODO Move =which-key=: Cut =use-package which-key= block & paste under "User Interface".
+- [ ] TODO Verify (which-key): Tangle/reload. Test which-key.
+- [ ] TODO Restructure: [Specific item] to [New Heading > Subheading].
+- [ ] TODO Verify ([Specific item]): Tangle/reload. Test functionality.
+
+**** Consolidating =setq=s into =use-package= blocks
+- [ ] TODO Consolidate =projectile= settings: Find external =(setq projectile-...)= lines.
+- [ ] TODO Move =projectile= settings: Cut & paste into =:init= or =:config= of =projectile= =use-package= block.
+- [ ] TODO Verify (projectile consolidation): Tangle/reload. Test Projectile.
+- [ ] TODO Consolidate [Package Name] settings.
+- [ ] TODO Verify ([Package Name] consolidation).
+
+**** Review Code Block Languages & Comments
+- [ ] TODO Scan Code Blocks (Section: Secrets Management): Ensure Elisp in =#+begin_src emacs-lisp=.
+- [ ] TODO Verify (Code Block Scan): Tangle/reload.
+- [ ] TODO Review Comments (Section: Secrets Management): Add/remove/clarify comments.
+- [ ] TODO Verify (Comments Review): Visual check, Emacs load.
+- [ ] TODO Scan Code Blocks (Section: Core Emacs Settings): Ensure Elisp in =#+begin_src emacs-lisp=.
+- [ ] TODO Verify (Code Block Scan): Tangle/reload.
+- [ ] TODO Review Comments (Section: Core Emacs Settings): Add/remove/clarify comments.
+- [ ] TODO Verify (Comments Review): Visual check, Emacs load.
+
+*** Phase 4: 1Password Integration Refinement
+- [ ] TODO Review 1Password Integration Performance: If API calls are slow, consider adjusting cache mechanism.
+- [ ] TODO Add Cache Invalidation (Optional): Add a function to clear the 1Password secrets cache when needed.
+- [ ] TODO Add Manual Authentication Command: Create an interactive command to run =op signin= from Emacs.
+- [ ] TODO Test Authentication Workflow: Confirm the signin -> cache -> use flow works smoothly.
+- [ ] TODO Document 1Password Integration: Add comments explaining how the integration works for future reference.
+- [ ] TODO Create Fallback Mechanism (Optional): Add a way to temporarily use environment variables if 1Password CLI is unavailable.
+
+*** Phase 5: Testing and Finalization (Ongoing with each step)
+- This phase is integrated into each daily task.
+- *Daily:* After each ✅ Action, perform the 🔍 Verify step.
+  - Check =*Messages*= for errors after reload/restart.
+  - Test the specific functionality touched.
+- *Daily:* After successful verification, 💾 Commit with a clear message.
+- *Weekly/Bi-weekly (Optional):* Dedicate a slightly longer session to a more thorough review of changes made and do broader testing.
+- *Final Review:*
+  - [ ] TODO Run full audit of configuration for any remaining hardcoded secrets.
+  - [ ] TODO Test full Emacs restart with complete configuration.
+  - [ ] TODO Confirm all 1Password integrations are working properly.
+  - [ ] TODO Test on a different machine if possible to ensure portability.
+  - [ ] TODO Document any environment setup requirements (e.g., 1Password CLI installation) in a README.
+    
+
+
+* MCP tweaks
+Add a guard to ensure the clojure-mcp stdio process uses UTF-8, to avoid JSON-RPC decoding errors.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'mcp
+  (defun srk/mcp-fix-process-coding ()
+    (when (boundp 'mcp-server-connections)
+      (maphash
+       (lambda (_name conn)
+         (let ((p (ignore-errors (oref conn process))))
+           (when (process-live-p p)
+             (set-process-coding-system p 'utf-8-unix 'utf-8-unix)
+             ;; (set-process-coding-system p 'no-conversion 'no-conversion)
+             )))
+       mcp-server-connections)))
+  (advice-add 'mcp-hub-start-server     :after (lambda (&rest _) (srk/mcp-fix-process-coding)))
+  (advice-add 'mcp-hub-restart-server   :after (lambda (&rest _) (srk/mcp-fix-process-coding)))
+  (advice-add 'mcp-hub-start-all-server :after (lambda (&rest _) (srk/mcp-fix-process-coding)))
+  (advice-add 'mcp-hub-restart-all-server :after (lambda (&rest _) (srk/mcp-fix-process-coding))))
+#+end_src
+
+
+* MCP tweaks
+Add a guard to ensure the clojure-mcp stdio process uses UTF-8, to avoid JSON-RPC decoding errors.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'mcp
+  (defun srk/mcp-fix-process-coding ()
+    (when (boundp 'mcp-server-connections)
+      (maphash
+       (lambda (_name conn)
+         (let ((p (ignore-errors (oref conn process))))
+           (when (process-live-p p)
+             (set-process-coding-system p 'utf-8-unix 'utf-8-unix)
+             ;; (set-process-coding-system p 'no-conversion 'no-conversion)
+             )))
+       mcp-server-connections)))
+  (dolist (f '(mcp-hub-start-server mcp-hub-restart-server mcp-hub-start-all-server mcp-hub-restart-all-server))
+    (advice-add f :after (lambda (&rest _) (srk/mcp-fix-process-coding))))
+  )
+#+end_src
+
+
+* MCP tweaks
+Add a guard to ensure the clojure-mcp stdio process uses UTF-8, to avoid JSON-RPC decoding errors.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'mcp
+  (defun srk/mcp-fix-process-coding ()
+    (when (and (boundp 'mcp-server-connections) (hash-table-p mcp-server-connections))
+      (maphash
+       (lambda (_name conn)
+         (ignore-errors
+           (let ((p (oref conn process)))
+             (when (process-live-p p)
+               (set-process-coding-system p 'utf-8-unix 'utf-8-unix)
+               ;; (set-process-coding-system p 'no-conversion 'no-conversion)
+               ))))
+       mcp-server-connections)))
+  (dolist (f '(mcp-hub-start-server mcp-hub-restart-server mcp-hub-start-all-server mcp-hub-restart-all-server))
+    (advice-add f :after (lambda (&rest _) (srk/mcp-fix-process-coding)))))
+#+end_src
