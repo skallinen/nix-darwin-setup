@@ -49,7 +49,7 @@
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.users.samikallinen = { 
+          home-manager.users.sakalli = { 
             imports = [ ./shared-home.nix ]; 
           };
         }
