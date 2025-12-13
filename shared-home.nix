@@ -62,10 +62,28 @@
     '')
   ];
 
+  # Linux-specific Systemd Service for SSH Agent Tunneling
+  systemd.user.services.ssh-agent-tunnel = lib.mkIf pkgs.stdenv.isLinux {
+    Unit = {
+      Description = "SSH Agent Tunnel to Host 1Password";
+      After = [ "network.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.openssh}/bin/ssh -o StrictHostKeyChecking=no -N -L %h/.1password/agent.sock:\"/Users/samikallinen/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock\" samikallinen@192.168.64.1";
+      Restart = "always";
+      RestartSec = "5s";
+    };
+    Install = {
+      WantedBy = [ "default.target" ];
+    };
+  };
+
   home.sessionVariables = {
     PAGER = "less";
     EDITOR = "zile";
     DOCKER_CONTEXT = "desktop-linux";
+  } // lib.optionalAttrs pkgs.stdenv.isLinux {
+    SSH_AUTH_SOCK = "/home/sakalli/.1password/agent.sock";
   };
 
   # --- Shared Program Configurations ---
