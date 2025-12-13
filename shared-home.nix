@@ -58,8 +58,7 @@
     tdlib
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     (pkgs.writeShellScriptBin "host-op" ''
-      export SSH_AUTH_SOCK=$HOME/.1password/agent.sock
-      exec op "$@"
+      ssh -o StrictHostKeyChecking=no samikallinen@192.168.64.1 op "$@"
     '')
   ];
 

@@ -73,10 +73,11 @@
       # Cloud & Sync
       "dropbox" "google-drive" "utm"
       
+      
       # Developer & Utilities
       "1password-cli" "mongodb-compass" "pharo-launcher"
       "aerospace" "blackhole-2ch" "caffeine" "docker-desktop"
-      "karabiner-elements" "keycastr"
+      "karabiner-elements" "keycastr" "antigravity"
       { name = "nordlayer"; greedy = true; }
       "pdf-pals" "spaceid"
       
@@ -89,10 +90,10 @@
     };
 
     # Emacs-Plus Configuration
-    extraConfig = ''
-      # Using manually installed emacs-plus@30
-      brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets"]
-    '';
+#    extraConfig = ''
+#      # Using manually installed emacs-plus@30
+#      brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets"]
+#    '';
   };
 
   # --- Nix Configuration ---
@@ -123,38 +124,6 @@
     # Config Files
     home.file.".config/aerospace/aerospace.toml".source = ./aerospace/aerospace.toml;
     
-    # Karabiner Config (Restored from your backup)
-    home.file.".config/karabiner/karabiner.json".text = builtins.toJSON {
-      profiles = [
-        {
-          name = "Default";
-          selected = true;
-          complex_modifications = {
-            rules = [
-              {
-                description = "Caps Lock -> Left Command";
-                manipulators = [
-                  {
-                    type = "basic";
-                    from = {
-                      key_code = "caps_lock";
-                      modifiers = { optional = [ "any" ]; };
-                    };
-                    to = [{ key_code = "left_command"; }];
-                  }
-                ];
-              }
-            ];
-          };
-          simple_modifications = [
-            {
-              from = { key_code = "caps_lock"; };
-              to = [{ key_code = "left_command"; }];
-            }
-          ];
-          virtual_hid_keyboard = { keyboard_type_v2 = "ansi"; };
-        }
-      ];
-    };
+  
   };
 }
