@@ -32,7 +32,8 @@
   fileSystems."/home/sakalli/common" = {
     device = "share";
     fsType = "9p";
-    options = [ "trans=virtio" "version=9p2000.L" "cache=loose" "msize=262144" ];
+    options = [ "trans=virtio" "version=9p2000.L" "cache=loose" "msize=262144" "uid=1000" "gid=100" ];
+    neededForBoot = false; 
   };
 
   # --- Networking ---
