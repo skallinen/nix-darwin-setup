@@ -29,20 +29,6 @@
     options = [ "fmask=0022" "dmask=0022" ];
   };
 
-  fileSystems."/mnt/vm-share" = {
-    device = "share";
-    fsType = "9p";
-    options = [ "trans=virtio" "version=9p2000.L" "cache=loose" "msize=262144" ]; 
-    neededForBoot = false; 
-  };
-
-  fileSystems."/home/sakalli/common" = {
-    device = "/mnt/vm-share";
-    fsType = "fuse.bindfs";
-    options = [ "force-user=sakalli" "force-group=users" "create-for-user=501" "create-for-group=20" ];
-    neededForBoot = false;
-  };
-
   # --- Networking ---
   networking.hostName = "nixos-vm";
   networking.networkmanager.enable = true;
