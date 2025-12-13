@@ -70,7 +70,7 @@
     };
     Service = {
       ExecStartPre = "${pkgs.coreutils}/bin/rm -f %h/.1password/agent.sock";
-      ExecStart = "${pkgs.openssh}/bin/ssh -o StrictHostKeyChecking=no -N -L %h/.1password/agent.sock:\"/Users/samikallinen/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock\" samikallinen@192.168.64.1";
+      ExecStart = "${pkgs.openssh}/bin/ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -N -L %h/.1password/agent.sock:\"/Users/samikallinen/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock\" samikallinen@192.168.64.1";
       Restart = "always";
       RestartSec = "5s";
     };
