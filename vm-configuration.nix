@@ -9,8 +9,8 @@
   nixpkgs.config.allowUnfree = true;
 
   # --- Boot & Hardware ---
-  boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.kernelModules = [ "9p" "9pnet" "9pnet_virtio" ];
   
   # UTM/QEMU Drivers
   services.qemuGuest.enable = true;
@@ -26,6 +26,12 @@
     device = "/dev/disk/by-uuid/889D-AC5A";
     fsType = "vfat";
     options = [ "fmask=0022" "dmask=0022" ];
+  };
+
+  fileSystems."/home/sakalli/common" = {
+    device = "share";
+    fsType = "9p";
+    options = [ "trans=virtio" "version=9p2000.L" "cache=loose" "msize=262144" ];
   };
 
   # --- Networking ---
