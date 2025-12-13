@@ -85,6 +85,7 @@
 
   # --- System Packages (VM Specific) ---
   environment.systemPackages = with pkgs; [
+    sshfs # For shared folder
     cmake
     libtool
     libvterm
