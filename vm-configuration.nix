@@ -13,6 +13,30 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelModules = [ "9p" "9pnet" "9pnet_virtio" ];
   
+  # --- Filesystems (9p Automounts) ---
+  # Raw mount of the host share to /mnt/vm-share (Automount to prevent boot hangs)
+  systemd.automounts = [
+    { where = "/mnt/vm-share"; wantedBy = [ "multi-user.target" ]; }
+    { where = "/home/sakalli/common"; wantedBy = [ "multi-user.target" ]; }
+  ];
+
+  systemd.mounts = [
+    {
+      what = "share";
+      where = "/mnt/vm-share";
+      type = "9p";
+      options = "trans=virtio,version=9p2000.L,cache=loose,msize=262144";
+    }
+    {
+      what = "/mnt/vm-share";
+      where = "/home/sakalli/common";
+      type = "fuse.bindfs";
+      options = "force-user=sakalli,force-group=users,create-for-user=501,create-for-group=20,auto_cache";
+      requires = [ "mnt-vm-share.mount" ];
+      after = [ "mnt-vm-share.mount" ];
+    }
+  ];
+  
   # UTM/QEMU Drivers
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
@@ -85,7 +109,7 @@
 
   # --- System Packages (VM Specific) ---
   environment.systemPackages = with pkgs; [
-    sshfs # For shared folder
+    bindfs # For valid user permissions on shared folder
     cmake
     libtool
     libvterm
