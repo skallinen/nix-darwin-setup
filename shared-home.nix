@@ -58,19 +58,46 @@
     tdlib
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     (pkgs.writeShellScriptBin "host-op" ''
+      SESSION_FILE="$HOME/.config/host-op/session"
       HOST="samikallinen@192.168.64.1"
       SSH_OPTS="-q -t -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPath=~/.ssh/host-op-control -o ControlPersist=10m"
 
-      # We use a compound command:
-      # 1. 'op signin' (forces authentication in the current shell)
-      # 2. 'op "$@"' (executes the requested command with that auth)
-      # 3. 'tr -d \r' (strips SSH TTY artifacts so Emacs gets clean JSON)
-      
-      # Escape arguments locally to preserve them through SSH
-      QARGS=$(printf "%q " "$@")
-      
-      # We ignore the output of signin to keep stdout clean for the actual command
-      ssh $SSH_OPTS $HOST "env TERM=xterm-256color /bin/bash -c '/opt/homebrew/bin/op signin --force >/dev/null 2>&1 && /opt/homebrew/bin/op $QARGS'" | tr -d '\r'
+      if [ "$1" == "signin" ]; then
+        mkdir -p $(dirname "$SESSION_FILE")
+        echo "Sign in to 1Password on host..."
+        # Interactive signin. 
+        # We capture the RAW token from stdout.
+        # 'tr -d \r' is crucial to strip SSH CRLF artifacts.
+        ssh $SSH_OPTS $HOST "env TERM=xterm-256color /opt/homebrew/bin/op signin --force --raw" | tr -d '\r' > "$SESSION_FILE"
+        chmod 600 "$SESSION_FILE"
+        
+        if [ -s "$SESSION_FILE" ]; then
+           echo "Success. Token saved to $SESSION_FILE"
+        else
+           echo "Failed to retrieve token."
+           rm "$SESSION_FILE"
+           exit 1
+        fi
+      else
+        # Normal Command execution
+        if [ -f "$SESSION_FILE" ]; then
+          TOKEN=$(cat "$SESSION_FILE")
+          # Escape arguments locally
+          QARGS=$(printf "%q " "$@")
+          
+          # Run command with --session flag
+          # We do NOT use -t here to ensure clean stdout for JSON
+          # We remove -q from SSH_OPTS if we want to debug, but keep it for cleanliness
+          # Actually SSH_OPTS includes -t, we must override or remove it.
+          # We'll use specific opts for the command run.
+          CMD_SSH_OPTS="-q -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPath=~/.ssh/host-op-control -o ControlPersist=10m"
+          
+          ssh $CMD_SSH_OPTS $HOST "env TERM=xterm-256color /opt/homebrew/bin/op --session \"$TOKEN\" $QARGS" | tr -d '\r'
+        else
+          echo "Not signed in. Please run 'host-op signin' first."
+          exit 1
+        fi
+      fi
     '')
   ];
 
