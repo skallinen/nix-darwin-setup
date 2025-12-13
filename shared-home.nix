@@ -231,7 +231,7 @@ programs.ssh = {
       set $mod Mod4
 
       # Font (Scaled for HiDPI)
-      font pango:Roboto Mono 16
+      font pango:Roboto Mono 14
 
       # Use mouse+$mod to drag floating windows
       floating_modifier $mod
@@ -243,7 +243,7 @@ programs.ssh = {
       bindsym $mod+Shift+q kill
 
       # launcher (rofi) - Scaled Font
-      bindsym $mod+d exec --no-startup-id rofi -show run -font "Roboto Mono 24"
+      bindsym $mod+d exec --no-startup-id rofi -show run -font "Roboto Mono 20"
 
       # focus movement
       bindsym $mod+h focus left
