@@ -42,11 +42,17 @@
     shell = pkgs.zsh;
     initialPassword = "nixos"; # only used at first creation
   };
+  environment.variables = {
+    GDK_SCALE = "2";
+    XCURSOR_SIZE = "48";
+  };
 
   # --- X11 + Window Manager (i3) ---
   services.xserver = {
     enable = true;
     desktopManager.xterm.enable = false;
+    dpi = 192;
+    
 
     windowManager.i3 = {
       enable = true;
@@ -65,7 +71,8 @@
 
   # --- Fonts (for i3 / rofi: Roboto Mono) ---
   fonts.packages = with pkgs; [
-    roboto-mono
+    (nerdfonts.override { fonts = [ "RobotoMono" ]; })
+    noto-fonts-emoji
   ];
 
   # --- 1Password inside VM (GUI + CLI, with polkit) ---
@@ -77,7 +84,10 @@
 
   # --- System Packages (VM Specific) ---
   environment.systemPackages = with pkgs; [
-    emacs
+    cmake
+    libtool
+    libvterm
+    ((emacsPackagesFor emacs).emacsWithPackages (epkgs: [ epkgs.vterm ]))
     zile
     firefox
     git
@@ -85,6 +95,7 @@
     xclip
     flameshot
     libnotify
+    xkblayout-state
   ];
 
   programs.zsh.enable = true;
