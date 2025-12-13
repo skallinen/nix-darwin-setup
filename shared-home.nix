@@ -60,6 +60,7 @@
     (pkgs.writeShellScriptBin "host-op" ''
       ssh -o StrictHostKeyChecking=no samikallinen@192.168.64.1 /opt/homebrew/bin/op "$@"
     '')
+    sshfs # For mounting remote folders
   ];
 
   # Linux-specific Systemd Service for SSH Agent Tunneling
@@ -73,6 +74,32 @@
       ExecStart = "${pkgs.openssh}/bin/ssh -o StrictHostKeyChecking=no -N -L %h/.1password/agent.sock:\"/Users/samikallinen/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock\" samikallinen@192.168.64.1";
       Restart = "always";
       RestartSec = "5s";
+    };
+    Install = {
+      WantedBy = [ "default.target" ];
+    };
+  };
+
+  # Linux-specific SSHFS Mount for Shared Folder
+  systemd.user.mounts.home-sakalli-common = lib.mkIf pkgs.stdenv.isLinux {
+    Unit = {
+      Description = "SSHFS Mount for 'common' shared folder";
+    };
+    Mount = {
+      What = "samikallinen@192.168.64.1:/Users/samikallinen/common";
+      Where = "/home/sakalli/common";
+      Type = "fuse.sshfs";
+      # IdentityFile location assumes standard location or configured via SSH config
+      Options = "reconnect,ServerAliveInterval=15,StrictHostKeyChecking=no,IdentityFile=/home/sakalli/.ssh/id_ed25519";
+    };
+  };
+
+  systemd.user.automounts.home-sakalli-common = lib.mkIf pkgs.stdenv.isLinux {
+    Unit = {
+      Description = "Automount for 'common' shared folder";
+    };
+    Automount = {
+      Where = "/home/sakalli/common";
     };
     Install = {
       WantedBy = [ "default.target" ];
