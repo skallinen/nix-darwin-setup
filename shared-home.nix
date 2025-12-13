@@ -58,7 +58,41 @@
     tdlib
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     (pkgs.writeShellScriptBin "host-op" ''
-      ssh -q -t -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPath=~/.ssh/host-op-control -o ControlPersist=10m samikallinen@192.168.64.1 env TERM=xterm-256color /opt/homebrew/bin/op "$@"
+      SESSION_FILE="$HOME/.config/host-op/session"
+      HOST="samikallinen@192.168.64.1"
+      SSH_OPTS="-o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPath=~/.ssh/host-op-control -o ControlPersist=10m"
+
+      if [ "$1" == "signin" ]; then
+        mkdir -p $(dirname "$SESSION_FILE")
+        echo "Sign in to 1Password on host..."
+        # Interactive signin. We capture the 'export' line from stdout.
+        # We assume 1Password outputs the export command to stdout.
+        ssh $SSH_OPTS -t $HOST "env TERM=xterm-256color /opt/homebrew/bin/op signin --force" > "$SESSION_FILE.tmp"
+        
+        # Verify and save
+        if grep -q "export OP_SESSION_" "$SESSION_FILE.tmp"; then
+          grep "export OP_SESSION_" "$SESSION_FILE.tmp" > "$SESSION_FILE"
+          chmod 600 "$SESSION_FILE"
+          rm "$SESSION_FILE.tmp"
+          echo "Session saved."
+        else
+          cat "$SESSION_FILE.tmp"
+          rm "$SESSION_FILE.tmp"
+          echo "Sign in failed or no session token found."
+          exit 1
+        fi
+      else
+        # Normal Command execution
+        if [ -f "$SESSION_FILE" ]; then
+          EXPORT_CMD=$(cat "$SESSION_FILE")
+          # Run command with token injected
+          # We do NOT use -t here to ensure clean stdout for JSON (Emacs)
+          ssh -q $SSH_OPTS $HOST "$EXPORT_CMD; env TERM=xterm-256color /opt/homebrew/bin/op $@"
+        else
+          echo "Not signed in. Please run 'host-op signin' first."
+          exit 1
+        fi
+      fi
     '')
   ];
 
