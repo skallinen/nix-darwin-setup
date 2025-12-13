@@ -28,6 +28,12 @@
     options = [ "fmask=0022" "dmask=0022" ];
   };
 
+  fileSystems."/home/sakalli/common" = {
+    device = "common";
+    fsType = "9p";
+    options = [ "trans=virtio" "version=9p2000.L" "cache=loose" ];
+  };
+
   # --- Networking ---
   networking.hostName = "nixos-vm";
   networking.networkmanager.enable = true;
