@@ -276,8 +276,8 @@ programs.ssh = {
 
       # layouts
       bindsym $mod+s layout stacking
-      bindsym $mod+w layout tabbed
-      bindsym $mod+e layout toggle split
+      # bindsym $mod+w layout tabbed
+      # bindsym $mod+e layout toggle split
 
       # tiling / floating
       bindsym $mod+Shift+space floating toggle
