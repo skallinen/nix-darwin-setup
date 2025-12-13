@@ -82,6 +82,8 @@
 #+begin_src emacs-lisp
 
 (require 'cl-lib)
+;; Fix for "function definition is void: concatenate" error in some packages
+(defalias 'concatenate 'cl-concatenate)
 
 (setq org-hide-emphasis-markers t)
 (setq css-indent-offset 2)
