@@ -56,6 +56,10 @@
     matterbridge
     mob
     tdlib
+  ] ++ lib.optionals pkgs.stdenv.isLinux [
+    (pkgs.writeShellScriptBin "host-op" ''
+      ssh -o StrictHostKeyChecking=no samikallinen@192.168.64.1 op "$@"
+    '')
   ];
 
   home.sessionVariables = {
