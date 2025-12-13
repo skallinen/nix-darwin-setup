@@ -58,7 +58,7 @@
     tdlib
   ] ++ lib.optionals pkgs.stdenv.isLinux [
     (pkgs.writeShellScriptBin "host-op" ''
-      ssh -t -o StrictHostKeyChecking=no samikallinen@192.168.64.1 /opt/homebrew/bin/op "$@"
+      ssh -t -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPath=~/.ssh/host-op-control -o ControlPersist=10m samikallinen@192.168.64.1 env TERM=xterm-256color /opt/homebrew/bin/op "$@"
     '')
   ];
 
