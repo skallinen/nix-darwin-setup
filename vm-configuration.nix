@@ -28,11 +28,6 @@
     options = [ "fmask=0022" "dmask=0022" ];
   };
 
-  fileSystems."/home/sakalli/common" = {
-    device = "common";
-    fsType = "virtiofs";
-  };
-
   # --- Networking ---
   networking.hostName = "nixos-vm";
   networking.networkmanager.enable = true;
