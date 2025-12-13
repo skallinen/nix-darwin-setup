@@ -14,28 +14,20 @@
   boot.kernelModules = [ "9p" "9pnet" "9pnet_virtio" ];
   
   # --- Filesystems (9p Automounts) ---
-  # Raw mount of the host share to /mnt/vm-share (Automount to prevent boot hangs)
-  systemd.automounts = [
-    { where = "/mnt/vm-share"; wantedBy = [ "multi-user.target" ]; }
-    { where = "/home/sakalli/common"; wantedBy = [ "multi-user.target" ]; }
-  ];
+  # --- Filesystems (9p Automounts) ---
+  # Raw mount of the host share to /mnt/vm-share
+  fileSystems."/mnt/vm-share" = {
+    device = "share";
+    fsType = "9p";
+    options = [ "trans=virtio" "version=9p2000.L" "cache=loose" "msize=262144" "noauto" "x-systemd.automount" "x-systemd.idle-timeout=60" ];
+  };
 
-  systemd.mounts = [
-    {
-      what = "share";
-      where = "/mnt/vm-share";
-      type = "9p";
-      options = "trans=virtio,version=9p2000.L,cache=loose,msize=262144";
-    }
-    {
-      what = "/mnt/vm-share";
-      where = "/home/sakalli/common";
-      type = "fuse.bindfs";
-      options = "force-user=sakalli,force-group=users,create-for-user=501,create-for-group=20,auto_cache";
-      requires = [ "mnt-vm-share.mount" ];
-      after = [ "mnt-vm-share.mount" ];
-    }
-  ];
+  # Bindfs overlay to /home/sakalli/common
+  fileSystems."/home/sakalli/common" = {
+    device = "/mnt/vm-share";
+    fsType = "fuse.bindfs";
+    options = [ "force-user=sakalli" "force-group=users" "create-for-user=501" "create-for-group=20" "auto_cache" "noauto" "x-systemd.automount" "x-systemd.idle-timeout=60" ];
+  };
   
   # UTM/QEMU Drivers
   services.qemuGuest.enable = true;
