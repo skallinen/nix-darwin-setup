@@ -92,8 +92,8 @@
 
     # Emacs-Plus Configuration
     extraConfig = ''
-      # Using manually installed emacs-plus@29 (Stable) with native-comp
-      brew "d12frosted/emacs-plus/emacs-plus@29", args: ["with-xwidgets", "with-native-comp"]
+      # Using emacs-plus@30 (Master) which supports Tree-sitter 0.26+
+      brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets", "with-native-comp"]
     '';
   };
 
