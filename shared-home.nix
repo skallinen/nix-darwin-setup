@@ -83,8 +83,8 @@
       # Works on macOS (darwin-rebuild) and NixOS (nixos-rebuild)
       nix-switch() {
         # Local flake path (override with $NIX_SWITCH_LOCAL_FLAKE if you like)
-        local local_flake="''${NIX_SWITCH_LOCAL_FLAKE:-$HOME/src/system-config}"
-        local remote_flake="''${NIX_SWITCH_REMOTE_FLAKE:-github:skallinen/nix-darwin-setup}"
+        local local_flake="''${NIX_SWITCH_LOCAL_FLAKE:-$HOME/nix-config}"
+        local remote_flake="''${NIX_SWITCH_REMOTE_FLAKE:-github:skallinen/nix-config}"
         local origin="local"
         local host=""
         local target_os=""
