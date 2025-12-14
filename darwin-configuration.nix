@@ -58,6 +58,7 @@
       # Tools
       "mpv" "sox" "yt-dlp"
       "ollama" "syncthing"
+      "w3m" "pandoc"
     ];
 
     # GUI Applications
