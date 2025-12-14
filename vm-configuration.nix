@@ -313,6 +313,7 @@
   # --- X11 + Window Manager (i3) ---
   services.xserver = {
     enable = true;
+    videoDrivers = [ "modesetting" ];
     desktopManager.xterm.enable = false;
     dpi = 192;
     
@@ -360,6 +361,7 @@
     flameshot
     libnotify
     xkblayout-state
+    mesa-demos # For glxinfo
   ];
 
   programs.zsh.enable = true;
