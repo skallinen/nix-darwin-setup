@@ -93,7 +93,8 @@
     # Emacs-Plus Configuration
     extraConfig = ''
       # Using emacs-plus@30 (Master) which supports Tree-sitter 0.26+
-      brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets", "with-native-comp"]
+      # Native compilation is default or implied in 30
+      brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets", "with-no-frame-refocus"]
     '';
   };
 
