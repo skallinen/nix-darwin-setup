@@ -36,14 +36,14 @@ Prereqs
 First apply (no local clone required)
 - Replace `<owner>` with your GitHub user/org.
 - Build and switch the Gmtk-MacBook-Pro config:
-  - `nix build --extra-experimental-features nix-command --extra-experimental-features flakes github:<owner>/nix-darwin-setup#darwinConfigurations.Gmtk-MacBook-Pro.system`
-  - `./result/sw/bin/darwin-rebuild switch --flake github:<owner>/nix-darwin-setup#Gmtk-MacBook-Pro`
+  - `nix build --extra-experimental-features nix-command --extra-experimental-features flakes github:<owner>/nix-config#darwinConfigurations.Gmtk-MacBook-Pro.system`
+  - `./result/sw/bin/darwin-rebuild switch --flake github:<owner>/nix-config#Gmtk-MacBook-Pro`
 
 After the first switch
 - Open 1Password, sign in. Enable Developer → “Use the SSH agent”.
 - Sign into the App Store (for `mas` installs like GarageBand).
 - Re-run the switch to finish installs if needed:
-  - `darwin-rebuild switch --flake github:<owner>/nix-darwin-setup#Gmtk-MacBook-Pro`
+  - `darwin-rebuild switch --flake github:<owner>/nix-config#Gmtk-MacBook-Pro`
 
 Verify
 - SSH with 1Password agent:
@@ -78,7 +78,7 @@ killall SystemUIServer 2>/dev/null || true
 ## Existing Mac (Air)
 
 Apply current host config
-- `darwin-rebuild switch --flake ~/src/system-config#Samis-MacBook-Air`
+- `darwin-rebuild switch --flake ~/nix-config#Samis-MacBook-Air`
 
 SSH via 1Password (managed)
 - The flake manages `~/.ssh/config` to use 1Password’s agent:
@@ -97,9 +97,9 @@ Usage:
 - `nix-switch Gmtk-MacBook-Pro`  (override)
 
 Other common commands
-- Rebuild/switch: `darwin-rebuild switch --flake ~/src/system-config#<Host>`
+- Rebuild/switch: `darwin-rebuild switch --flake ~/nix-config#<Host>`
 - Update inputs: `nix flake update`
-- Update and switch in one go: `nix flake update && darwin-rebuild switch --flake ~/src/system-config#<Host>`
+- Update and switch in one go: `nix flake update && darwin-rebuild switch --flake ~/nix-config#<Host>`
 
 ## Notes
 
