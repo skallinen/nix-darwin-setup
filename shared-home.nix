@@ -3,17 +3,7 @@
 {
   # --- Shared Packages (CLI tools, languages, utilities) ---
   home.packages = with pkgs; [
-    # Languages
-    clojure
-    python3
-
-    # Build & VCS
-    cmake
-    git-filter-repo
-    gnumake
-
-    # CLI essentials
-    awscli2
+    # Core CLI Essentials (Safe for macOS)
     bat
     coreutils
     curl
@@ -21,40 +11,52 @@
     fd
     fzf
     gnupg
-    jc
     jq
+    ripgrep
     tldr
     tokei
     tree
     wget
+  ] ++ lib.optionals pkgs.stdenv.isLinux [
+    # --- Linux Only / Heavy Dependencies ---
+    
+    # Languages & Build
+    clojure
+    python3
+    cmake
+    git-filter-repo
+    gnumake
 
+    # Utils
+    jc
+    awscli2
+    
     # Search & Text
     html-tidy
-    ripgrep
     silver-searcher
     w3m
-
+    
     # Networking
     arp-scan
     iftop
     nmap
     rsync
     caddy
-
+    
     # Email & Docs
     isync
     mu
     pandoc
-
+    
     # Visualization
     graphviz
-
+    
     # Misc
-    # cmdstan
     matterbridge
     mob
     tdlib
-  ] ++ lib.optionals pkgs.stdenv.isLinux [
+    
+    # GUI / System
     gvfs
     kitty
     (pkgs.writeShellScriptBin "host-op" ''
