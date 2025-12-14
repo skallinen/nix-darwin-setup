@@ -51,12 +51,12 @@
 
     # Misc
     # cmdstan
-    gvfs
-    kitty
     matterbridge
     mob
     tdlib
   ] ++ lib.optionals pkgs.stdenv.isLinux [
+    gvfs
+    kitty
     (pkgs.writeShellScriptBin "host-op" ''
       HOST="samikallinen@192.168.64.1"
       SSH_OPTS="-q -t -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPath=~/.ssh/host-op-control -o ControlPersist=10m"
