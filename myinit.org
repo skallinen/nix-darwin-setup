@@ -101,6 +101,7 @@
   (setq mac-option-modifier 'meta)
   (use-package exec-path-from-shell
     :ensure t
+    :demand t
     :config
     (exec-path-from-shell-initialize)))
 
@@ -3628,7 +3629,7 @@ Ease of use features:
 		    "||||| "
 		    (if (eq system-type 'darwin)
 			'(:eval (shell-command-to-string
-				 "defaults read ~/Library/Preferences/com.apple.HIToolbox.plist AppleSelectedInputSources | command rg -e '\"KeyboardLayout Name\" = \"([^\"]*)\"' --replace '$1' --only-matching --color never | tr -d '\n'"))
+				 "defaults read ~/Library/Preferences/com.apple.HIToolbox.plist AppleSelectedInputSources | /etc/profiles/per-user/samikallinen/bin/rg -e '\"KeyboardLayout Name\" = \"([^\"]*)\"' --replace '$1' --only-matching --color never | tr -d '\n'"))
 		      '(:eval (upcase (shell-command-to-string "xkblayout-state print \"%s\"" ))))
 		    " kbd |||||      "
 		    mode-line-position
