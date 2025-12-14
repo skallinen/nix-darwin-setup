@@ -98,7 +98,11 @@
 (setq mac-command-modifier 'super)
 
 (when (eq system-type 'darwin)
-  (setq mac-option-modifier 'meta))
+  (setq mac-option-modifier 'meta)
+  (use-package exec-path-from-shell
+    :ensure t
+    :config
+    (exec-path-from-shell-initialize)))
 
 (defun srk/clj-indent-like-ret ()
   (interactive)
