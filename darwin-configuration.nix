@@ -37,7 +37,8 @@
       "brewsci/homebrew-science"
       "nikitabobko/tap"
       "d12frosted/emacs-plus"
-      "local/emacs-deps" # <--- Your Custom Tap
+      "d12frosted/emacs-plus"
+      # "local/emacs-deps" # <--- Disabled broken custom tap
     ];
 
     # CLI Packages via Brew (Mac-specific or preferred over Nix)
@@ -47,7 +48,7 @@
       "isl" "libmpc" "mpfr"
       
       # Your custom Tree-sitter build
-      "local/emacs-deps/tree-sitter@0.24.3" 
+      # "local/emacs-deps/tree-sitter@0.24.3" # Disabled to allow Emacs to manage its own deps
 
       # Runtimes & Libs
       "node" "python-setuptools"
@@ -90,10 +91,10 @@
     };
 
     # Emacs-Plus Configuration
-#    extraConfig = ''
-#      # Using manually installed emacs-plus@30
-#      brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets"]
-#    '';
+    extraConfig = ''
+      # Using manually installed emacs-plus@29 (Stable) with native-comp
+      brew "d12frosted/emacs-plus/emacs-plus@29", args: ["with-xwidgets", "with-native-comp"]
+    '';
   };
 
   # --- Nix Configuration ---
