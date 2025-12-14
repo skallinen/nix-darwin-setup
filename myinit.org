@@ -1,3 +1,7 @@
+* Verification
+#+begin_src emacs-lisp
+(message "Antigravity Sync Test: %s" (current-time-string))
+#+end_src
 * Table of contents
 - [[*Dummy][Dummy]]
 - [[*Markdown Xwidget][Markdown Xwidget]]
