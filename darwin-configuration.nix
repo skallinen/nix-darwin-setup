@@ -14,9 +14,22 @@
 
   # Spotlight & Input Source Shortcuts (Cmd+Space / Cmd+D)
   system.activationScripts.postUserActivation.text = ''
+    # Spotlight -> Cmd+Space (Standard Default)
+    /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 '{enabled = 1; value = {parameters = (32, 49, 1048576); type = standard;};}'
+    
+    # Spotlight Window (Finder Search) -> Disabled
+    /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 65 '{enabled = 0;}'
+    
+    # Input Source -> Cmd+Space (Karabiner intercepts this, but we keep it standard)
     /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 61 '{enabled = 1; value = {parameters = (32, 49, 1048576); type = standard;};}'
-    /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 60 '{enabled = 0;}'
-    /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 '{enabled = 1; value = {parameters = (100, 2, 1048576); type = standard;};}'
+
+    # Disable "Switch to Desktop" 1-10 to avoid conflict with Aerospace (Cmd+Num)
+    ${pkgs.lib.concatMapStringsSep "\n" (i: 
+      "/usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add ${toString i} '{enabled = 0;}'"
+    ) (pkgs.lib.range 118 127)}
+
+    # Force reload of settings
+    /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
     killall cfprefsd 2>/dev/null || true
     killall SystemUIServer 2>/dev/null || true
   '';
@@ -114,6 +127,7 @@
   programs.zsh.enable = true; 
 
   # --- Home Manager (Mac Specifics) ---
+  home-manager.backupFileExtension = "backup";
   home-manager.users.samikallinen = { pkgs, ... }: {
     imports = [ ./shared-home.nix ];
 
@@ -126,7 +140,119 @@
 
     # Config Files
     home.file.".config/aerospace/aerospace.toml".source = ./aerospace/aerospace.toml;
-    
+    home.file.".config/karabiner/karabiner.json".text = builtins.toJSON {
+      profiles = [
+        {
+          name = "Default";
+          selected = true;
+          complex_modifications = {
+            rules = [
+              {
+                description = "Cmd+Space -> Toggle Input Source (US <-> Swedish)";
+                manipulators = [
+                  {
+                    type = "basic";
+                    conditions = [
+                      {
+                        type = "input_source_if";
+                        input_sources = [{ language = "^en$"; }];
+                      }
+                    ];
+                    from = {
+                      key_code = "spacebar";
+                      modifiers = { mandatory = ["left_command"]; };
+                    };
+                    to = [{ select_input_source = { language = "sv"; }; }];
+                  }
+                  {
+                    type = "basic";
+                    conditions = [
+                      {
+                        type = "input_source_if";
+                        input_sources = [{ language = "^sv$"; }];
+                      }
+                    ];
+                    from = {
+                      key_code = "spacebar";
+                      modifiers = { mandatory = ["left_command"]; };
+                    };
+                    to = [{ select_input_source = { language = "en"; }; }];
+                  }
+                  # Fallback if neither matches (assume we want English)
+                  {
+                    type = "basic";
+                    from = {
+                      key_code = "spacebar";
+                      modifiers = { mandatory = ["left_command"]; };
+                    };
+                    to = [{ select_input_source = { language = "en"; }; }];
+                  }
+                ];
+              }
+              {
+                description = "Cmd+D -> Cmd+Space (Spotlight)";
+                manipulators = [
+                  {
+                    type = "basic";
+                    from = {
+                      key_code = "d";
+                      modifiers = { mandatory = ["left_command"]; };
+                    };
+                    to = [
+                      {
+                        key_code = "spacebar";
+                        modifiers = ["left_command"];
+                      }
+                    ];
+                  }
+                ];
+              }
+              {
+                description = "Right Cmd → Super when UTM focused";
+                manipulators = [
+                  {
+                    type = "basic";
+                    conditions = [
+                      {
+                        type = "frontmost_application_if";
+                        bundle_identifiers = ["^com\\.utmapp\\.UTM$"];
+                      }
+                    ];
+                    from = { key_code = "right_command"; };
+                    to = [{ key_code = "left_gui"; }];
+                  }
+                ];
+              }
+              {
+                description = "Caps Lock -> Left Command";
+                manipulators = [
+                  {
+                    type = "basic";
+                    from = {
+                      key_code = "caps_lock";
+                      modifiers = { optional = ["any"]; };
+                    };
+                    to = [{ key_code = "left_command"; }];
+                  }
+                ];
+              }
+            ];
+          };
+          simple_modifications = [
+            {
+              from = { key_code = "caps_lock"; };
+              to = [{ key_code = "left_command"; }];
+            }
+            {
+              from = { key_code = "right_command"; };
+              to = [{ key_code = "left_gui"; }];
+            }
+          ];
+          virtual_hid_keyboard = { keyboard_type_v2 = "ansi"; };
+        }
+      ];
+    };
+
   
   };
 }
