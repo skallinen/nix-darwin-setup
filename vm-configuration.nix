@@ -156,6 +156,8 @@
       enable = true;
       package = pkgs.i3-gaps;
       config = {
+        modifier = "Mod4"; 
+        keybindings = {};
         bars = [ ]; 
       };
       extraConfig = ''
@@ -310,6 +312,10 @@
     XCURSOR_SIZE = "48";
   };
 
+  # --- Localization ---
+  time.timeZone = "Europe/Helsinki";
+  i18n.defaultLocale = "en_US.UTF-8";
+
   # --- X11 + Window Manager (i3) ---
   services.xserver = {
     enable = true;
@@ -330,7 +336,10 @@
       ];
     };
 
-    xkb.options = "caps:escape";
+    xkb = {
+      layout = "us,fi";
+      options = "caps:escape,grp:win_space_toggle";
+    };
   };
 
   # --- Fonts (for i3 / rofi: Roboto Mono) ---

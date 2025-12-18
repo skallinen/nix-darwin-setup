@@ -32,6 +32,11 @@
     /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
     killall cfprefsd 2>/dev/null || true
     killall SystemUIServer 2>/dev/null || true
+
+    # Enable Remote Login (SSH) for VM access
+    if /usr/sbin/systemsetup -getremotelogin | grep -q "Off"; then
+      sudo /usr/sbin/systemsetup -f -setremotelogin on
+    fi
   '';
 
   # --- Homebrew Configuration ---
@@ -120,6 +125,9 @@
   
   # Set State Version to 5 to avoid the error you saw earlier
   system.stateVersion = 4;
+
+  # --- Security ---
+  security.pam.enableSudoTouchIdAuth = true;
 
   # --- User Setup ---
   users.users.samikallinen.home = "/Users/samikallinen";
@@ -255,4 +263,9 @@
 
   
   };
+  
+  # --- Fonts ---
+  fonts.packages = with pkgs; [
+    (nerdfonts.override { fonts = [ "RobotoMono" ]; })
+  ];
 }

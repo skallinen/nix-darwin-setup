@@ -56,9 +56,9 @@
         IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 
       Host vm
-        HostName 192.168.64.5
+        HostName 192.168.64.2
         User sakalli
-        IdentityFile ~/.ssh/antigravity_id_ed25519
+        IdentityFile ~/.ssh/id_ed25519_vm_access
         IdentitiesOnly yes
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
