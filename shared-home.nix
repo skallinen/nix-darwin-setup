@@ -138,6 +138,8 @@
         if [ "$target_os" = "linux" ]; then
           sudo nixos-rebuild switch --flake "$flake#$host" "$@"
         else
+          darwin-rebuild switch --flake "$flake#$host" "$@"
+        fi
       }
     '';
   };
