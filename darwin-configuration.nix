@@ -77,6 +77,7 @@
       "mpv" "sox" "yt-dlp"
       "ollama" "syncthing"
       "w3m" "pandoc"
+      "mu" "isync"
     ];
 
     # GUI Applications
