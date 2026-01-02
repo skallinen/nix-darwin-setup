@@ -138,11 +138,89 @@
         if [ "$target_os" = "linux" ]; then
           sudo nixos-rebuild switch --flake "$flake#$host" "$@"
         else
-          darwin-rebuild switch --flake "$flake#$host" "$@"
-        fi
       }
     '';
   };
+
+  home.file.".mbsyncrc".text = ''
+    IMAPAccount gmail
+    AuthMechs LOGIN
+    Host imap.gmail.com
+    User notjustsilicon@gmail.com
+    # google app passwords: https://support.google.com/mail/answer/185833?hl=en
+    # setting an app passwork: https://myaccount.google.com/apppasswords
+    PassCmd "op read op://Private/gmail-mbsync/password"
+    TLSType IMAPS
+    #CertificateFile /etc/ssl/certs/ca-certificates.crt
+    PipeLineDepth 1
+
+    IMAPStore gmail-remote
+    Account gmail
+
+    MaildirStore gmail-local
+    Subfolders Verbatim
+    Path ~/mail/notjust/
+    Inbox ~/mail/notjust/Inbox
+
+    Channel gmail
+    Far :gmail-remote:
+    Near :gmail-local:
+    Patterns * ![Gmail]* "[Gmail]/Sent Mail" "[Gmail]/Starred" "[Gmail]/All Mail" "[Gmail]/Trash"
+    Create Both
+    SyncState *
+
+    IMAPAccount 8-bit
+    AuthMechs LOGIN
+    Host imap.gmail.com
+    User sami@8-bit-sheep.com
+    # google app passwords: https://support.google.com/mail/answer/185833?hl=en
+    # setting an app passwork: https://myaccount.google.com/apppasswords
+    PassCmd "op read op://Private/8bs-gmail-mbsync/password"
+    TLSType IMAPS
+    #CertificateFile /etc/ssl/certs/ca-certificates.crt
+    PipeLineDepth 1
+
+    IMAPStore 8-bit-remote
+    Account 8-bit
+
+    MaildirStore 8-bit-local
+    Subfolders Verbatim
+    Path ~/mail/8-bit/
+    Inbox ~/mail/8-bit/Inbox
+
+    Channel 8-bit
+    Far :8-bit-remote:
+    Near :8-bit-local:
+    Patterns * ![Gmail]* "[Gmail]/Sent Mail" "[Gmail]/Starred" "[Gmail]/All Mail" "[Gmail]/Trash"
+    Create Both
+    SyncState *
+
+
+    IMAPAccount oderland
+    AuthMechs LOGIN
+    Host raiden.oderland.com
+    User sami@kpsystem.se  # Replace with your actual email address
+    PassCmd "op read op://Private/oderland-mbsync/password"  # You'll need to add this password to 1Password
+    TLSType IMAPS
+    Port 993  # Using the SSL port you mentioned
+    PipeLineDepth 1
+
+    IMAPStore oderland-remote
+    Account oderland
+
+    MaildirStore oderland-local
+    Subfolders Verbatim
+    Path ~/mail/oderland/  # You can change this path if you prefer
+    Inbox ~/mail/oderland/Inbox
+
+    Channel oderland
+    Far :oderland-remote:
+    Near :oderland-local:
+    Patterns *
+    Create Both
+    SyncState *
+  '';
+
   
   home.sessionVariables = {
     PAGER = "less";
