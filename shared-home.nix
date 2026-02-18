@@ -18,6 +18,7 @@
     tree
     wget
     pngpaste
+    dotnet-sdk_8
 
     # CLI Tools for Flutter & Clojure
     flutter
@@ -239,7 +240,12 @@
     PAGER = "less";
     EDITOR = "zile";
     DOCKER_CONTEXT = "desktop-linux";
+    DOTNET_ROOT = "${pkgs.dotnet-sdk_8}/share/dotnet";
   };
+
+  home.sessionPath = [
+    "$HOME/.dotnet/tools"
+  ];
 
   home.stateVersion = "22.11";
 }
