@@ -82,7 +82,6 @@
       "w3m" "pandoc"
       "mu" "isync"
       "wedow/tools/ticket"
-      "opencode"
     ];
 
     # GUI Applications
@@ -107,7 +106,7 @@
       "aerospace" "blackhole-2ch" "caffeine" "docker-desktop"
       "karabiner-elements" "keycastr" "antigravity" "copilot-cli"
       { name = "nordlayer"; greedy = true; }
-      "pdf-pals" "spaceid" "opencode-desktop"
+      "pdf-pals" "spaceid" "opencode-desktop" "codex"
       
       # Security & Misc
       "1password" "claude" "opencpn" "supercollider" "displaylink"
