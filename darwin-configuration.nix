@@ -114,6 +114,7 @@
 
     masApps = {
       "GarageBand" = 682658836;
+      "Xcode" = 497799835;
     };
 
     # Emacs-Plus Configuration
