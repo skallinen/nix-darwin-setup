@@ -75,10 +75,12 @@ killall cfprefsd 2>/dev/null || true
 killall SystemUIServer 2>/dev/null || true
 ```
 
-## Existing Mac (Air)
+## Existing Mac
 
-Apply current host config
-- `darwin-rebuild switch --flake ~/nix-config#Samis-MacBook-Air`
+Apply current host config (depends on your machine's hostname, e.g., `Samis-MacBook-Air` or `Gmtk-MacBook-Pro`):
+- If inside the `nix-config` directory: `darwin-rebuild switch --flake .#<Host>`
+- From anywhere else: `darwin-rebuild switch --flake ~/nix-config#<Host>`
+*Tip: If you're unsure which `<Host>` to use, you can check your command history for past builds: `history | grep darwin-rebuild` (or `grep darwin-rebuild ~/.zsh_history`).*
 
 SSH via 1Password (managed)
 - The flake manages `~/.ssh/config` to use 1Password’s agent:
@@ -112,6 +114,7 @@ Other common commands
 - If SSH fails to use 1Password, ensure the agent is enabled in 1Password and that `ssh -G github.com` shows an IdentityAgent path under the 1Password Group Containers directory.
 - If keyboard shortcuts don’t stick, see the Keyboard shortcuts section above.
 - If `darwin-rebuild` reports files in the way, delete them or rely on backups (already enabled here) and re-run.
+  - Note: System-level files like `/etc/zshrc` and `/etc/zprofile` often cause conflicts on the first run and are not auto-backed up by Home Manager. You must rename them manually, e.g., `sudo mv /etc/zshrc /etc/zshrc.before-nix-darwin` and `sudo mv /etc/zprofile /etc/zprofile.before-nix-darwin`.
 
 ## Docker Desktop first run
 
