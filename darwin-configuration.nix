@@ -50,38 +50,26 @@
 
     taps = [
       "anomalyco/tap"
-      "railwaycat/emacsmacport"
       "pharo-project/pharo"
       "koekeishiya/formulae"
       "brewsci/homebrew-science"
       "nikitabobko/tap"
       "d12frosted/emacs-plus"
       "wedow/tools"
-
-      # "local/emacs-deps" # <--- Disabled broken custom tap
     ];
 
     # CLI Packages via Brew (Mac-specific or preferred over Nix)
     brews = [
       "opencode"
-      # Build & Toolchain
-      "autoconf" "automake" "libtool" "pkg-config"
-      "isl" "libmpc" "mpfr"
-      
-      # Your custom Tree-sitter build
-      # "local/emacs-deps/tree-sitter@0.24.3" # Disabled to allow Emacs to manage its own deps
-
-      # Runtimes & Libs
       "node" "python-setuptools"
-      "giflib" "glib" "jpeg" "libpng" "zlib"
-      "cairo" "librsvg" "pango" "poppler"
-      
+
       # Tools
       "mpv" "sox" "yt-dlp"
       "ollama" "syncthing"
       "w3m" "pandoc"
       "mu" "isync"
       "wedow/tools/ticket"
+      "librtlsdr"
     ];
 
     # GUI Applications
@@ -106,7 +94,7 @@
       "aerospace" "blackhole-2ch" "caffeine" "docker-desktop"
       "karabiner-elements" "keycastr" "antigravity" "copilot-cli"
       { name = "nordlayer"; greedy = true; }
-      "pdf-pals" "spaceid" "opencode-desktop" "codex"
+      "pdf-pals" "spaceid" "opencode-desktop" "codex" "vnc-viewer"
       
       # Security & Misc
       "1password" "claude" "opencpn" "supercollider" "displaylink"
@@ -117,11 +105,8 @@
       "Xcode" = 497799835;
     };
 
-    # Emacs-Plus Configuration
     extraConfig = ''
-      # Using emacs-plus@30 (Master) which supports Tree-sitter 0.26+
-      # Native compilation is default or implied in 30
-      brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets", "with-no-frame-refocus"]
+      brew "d12frosted/emacs-plus/emacs-plus@31", args: ["with-xwidgets"]
     '';
   };
 
