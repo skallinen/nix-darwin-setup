@@ -70,6 +70,7 @@
       "mu" "isync"
       "wedow/tools/ticket"
       "librtlsdr"
+      "jpeg"
     ];
 
     # GUI Applications
@@ -102,11 +103,11 @@
 
     masApps = {
       "GarageBand" = 682658836;
-      "Xcode" = 497799835;
+      # "Xcode" = 497799835;
     };
 
     extraConfig = ''
-      brew "d12frosted/emacs-plus/emacs-plus@31", args: ["with-xwidgets"]
+      brew "d12frosted/emacs-plus/emacs-plus@30", args: ["with-xwidgets"]
     '';
   };
 
@@ -144,6 +145,8 @@
       pngpaste
       terminal-notifier
       m-cli
+      cmake
+      libtool
     ];
 
     # Config Files
