@@ -87,7 +87,7 @@
       "audacity" "calibre" "inkscape" "krita" "meshlab" "obs" "vlc"
       
       # Cloud & Sync
-      "dropbox" "google-drive" "utm"
+      "dropbox" "google-drive" "utm" "aws-vpn-client"
       
       
       # Developer & Utilities
