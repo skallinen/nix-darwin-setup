@@ -53,28 +53,23 @@
     };
 
     taps = [
-      "anomalyco/tap"
+      # Removed: anomalyco/tap (opencode is in homebrew-core now)
+      # Removed: railwaycat/emacsmacport (using emacs-plus, not emacs-mac)
+      # Removed: brewsci/homebrew-science (nothing installed from it)
+      # Removed: koekeishiya/formulae (using aerospace, not yabai/skhd)
       "pharo-project/pharo"
-      "koekeishiya/formulae"
-      "brewsci/homebrew-science"
       "nikitabobko/tap"
       "d12frosted/emacs-plus"
       "wedow/tools"
     ];
 
-    # CLI Packages via Brew (Mac-specific or preferred over Nix)
+    # CLI Packages via Brew (only what can't move to Nix)
     brews = [
-      "opencode"
-      "node" "python-setuptools"
-
-      # Tools
-      "mpv" "sox" "yt-dlp"
-      "ollama" "syncthing"
-      "w3m" "pandoc"
-      "mu" "isync"
-      "wedow/tools/ticket"
-      "librtlsdr"
-      "jpeg"
+      "opencode"              # Nix version too old (1.1.14 vs brew 1.4.10)
+      "mpv"                   # Nix build fails versionCheckPhase on macOS
+      "wedow/tools/ticket"    # Custom tap, no Nix package
+      "librtlsdr"             # SDR radio library
+      "jpeg"                  # emacs-plus dependency
     ];
 
     # GUI Applications
@@ -93,9 +88,8 @@
       # Cloud & Sync
       "dropbox" "google-drive" "utm" "aws-vpn-client"
       
-      
       # Developer & Utilities
-      # "1password-cli" # TEMP: upstream cask broken (generate_completions_from_executable)
+      # 1password-cli now provided by Nix (pkgs._1password-cli)
       "mongodb-compass" "pharo-launcher"
       "aerospace" "blackhole-2ch" "caffeine" "docker-desktop"
       "karabiner-elements" "keycastr" "antigravity" "copilot-cli"
