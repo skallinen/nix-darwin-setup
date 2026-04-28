@@ -49,7 +49,7 @@
     onActivation = { 
       autoUpdate = true; 
       upgrade = true; 
-      cleanup = "uninstall"; # TEMP: was "zap", changed to keep 1password-cli while upstream cask is broken
+      cleanup = "zap";
     };
 
     taps = [
