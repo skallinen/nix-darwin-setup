@@ -26,6 +26,9 @@
     clojure
     clj-kondo
     clojure-lsp
+  ] ++ [
+    # AI Tools (hyphenated names can't go in the with-block above)
+    pkgs."claude-code"
   ];
 
   # --- Shared Program Configurations ---
@@ -43,8 +46,8 @@
   programs.eza.enable = true;
   programs.git = {
     enable = true;
-    userName  = "Sami Kallinen";
-    userEmail = "notjustsilicon@gmail.com";
+    settings.user.name  = "Sami Kallinen";
+    settings.user.email = "notjustsilicon@gmail.com";
   };
 
   programs.starship = {
@@ -82,7 +85,7 @@
     shellAliases = if pkgs.stdenv.isDarwin then {
       aerospace = "/Applications/AeroSpace.app/Contents/MacOS/aerospace";
     } else {};
-    initExtra = ''
+    initContent = ''
       # Docker Context Switching (macOS only - Docker Desktop)
       if [ "$(uname)" = "Darwin" ] && command -v docker >/dev/null 2>&1; then
         if [ -z "''${DOCKER_HOST:-}" ] && docker context ls >/dev/null 2>&1; then
@@ -150,7 +153,7 @@
         if [ "$target_os" = "linux" ]; then
           sudo nixos-rebuild switch --flake "$flake#$host" "$@"
         else
-          darwin-rebuild switch --flake "$flake#$host" "$@"
+          sudo darwin-rebuild switch --flake "$flake#$host" "$@"
         fi
       }
     '';
