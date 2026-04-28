@@ -3,6 +3,9 @@
 {
   networking.hostName = "Samis-MacBook-Air";
 
+  # Required in nix-darwin 25.11+ for user-scoped options (homebrew, defaults, etc.)
+  system.primaryUser = "samikallinen";
+
   # --- System Defaults & Keyboard ---
   system.defaults.finder.AppleShowAllExtensions = true;
   system.defaults.finder._FXShowPosixPathInTitle = true;
@@ -13,7 +16,8 @@
   system.defaults.spaces.spans-displays = false;
 
   # Spotlight & Input Source Shortcuts (Cmd+Space / Cmd+D)
-  system.activationScripts.postUserActivation.text = ''
+  # Note: postUserActivation removed in 25.11; all activation now runs as root
+  system.activationScripts.postActivation.text = ''
     # Spotlight -> Cmd+Space (Standard Default)
     /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 '{enabled = 1; value = {parameters = (32, 49, 1048576); type = standard;};}'
     
@@ -45,7 +49,7 @@
     onActivation = { 
       autoUpdate = true; 
       upgrade = true; 
-      cleanup = "zap"; 
+      cleanup = "uninstall"; # TEMP: was "zap", changed to keep 1password-cli while upstream cask is broken
     };
 
     taps = [
@@ -91,7 +95,8 @@
       
       
       # Developer & Utilities
-      "1password-cli" "mongodb-compass" "pharo-launcher"
+      # "1password-cli" # TEMP: upstream cask broken (generate_completions_from_executable)
+      "mongodb-compass" "pharo-launcher"
       "aerospace" "blackhole-2ch" "caffeine" "docker-desktop"
       "karabiner-elements" "keycastr" "antigravity" "copilot-cli"
       { name = "nordlayer"; greedy = true; }
@@ -103,7 +108,6 @@
 
     masApps = {
       "GarageBand" = 682658836;
-      # "Xcode" = 497799835;
     };
 
     extraConfig = ''
@@ -112,7 +116,7 @@
   };
 
   # --- Nix Configuration ---
-  services.nix-daemon.enable = true;
+  # services.nix-daemon.enable removed in 25.11 (now unconditional when nix.enable is on)
   nix.extraOptions = ''
     experimental-features = nix-command flakes
   '';
@@ -120,8 +124,12 @@
   # Set State Version to 5 to avoid the error you saw earlier
   system.stateVersion = 4;
 
+  # Pin nixbld GID to match existing system (nix-darwin 25.11 changed default from 30000 → 350)
+  ids.gids.nixbld = 350;
+
   # --- Security ---
-  security.pam.enableSudoTouchIdAuth = true;
+  # Renamed in nix-darwin 25.11
+  security.pam.services.sudo_local.touchIdAuth = true;
 
   # --- User Setup ---
   users.users.samikallinen.home = "/Users/samikallinen";
@@ -269,6 +277,6 @@
   
   # --- Fonts ---
   fonts.packages = with pkgs; [
-    (nerdfonts.override { fonts = [ "RobotoMono" ]; })
+    nerd-fonts.roboto-mono
   ];
 }
