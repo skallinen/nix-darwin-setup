@@ -101,7 +101,7 @@
     ];
 
     masApps = {
-      "GarageBand" = 682658836;
+      # GarageBand removed — App Store download fails and blocks brew bundle
     };
 
     extraConfig = ''
