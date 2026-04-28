@@ -151,6 +151,8 @@
       libtool
       nodejs          # moved from Homebrew
       _1password-cli  # moved from Homebrew cask
+      emacs-lsp-booster  # LSP I/O proxy for faster TypeScript
+      vscode-js-debug    # DAP debug adapter for dape
     ];
 
     # Config Files

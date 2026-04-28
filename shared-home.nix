@@ -27,6 +27,13 @@
     clj-kondo
     clojure-lsp
 
+    # JS/TS Development Toolchain
+    nodePackages.typescript
+    nodePackages.typescript-language-server
+    nodePackages.prettier
+    prettierd
+    tailwindcss-language-server
+
     # CLI Tools (moved from Homebrew)
     # mpv — kept in Homebrew (nixpkgs build fails versionCheckPhase on macOS)
     sox
