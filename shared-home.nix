@@ -28,7 +28,7 @@
     clojure-lsp
 
     # CLI Tools (moved from Homebrew)
-    mpv
+    # mpv — kept in Homebrew (nixpkgs build fails versionCheckPhase on macOS)
     sox
     yt-dlp
     ollama
