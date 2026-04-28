@@ -26,6 +26,17 @@
     clojure
     clj-kondo
     clojure-lsp
+
+    # CLI Tools (moved from Homebrew)
+    mpv
+    sox
+    yt-dlp
+    ollama
+    syncthing
+    w3m
+    pandoc
+    mu
+    isync
   ] ++ [
     # AI Tools (hyphenated names can't go in the with-block above)
     pkgs."claude-code"

@@ -155,6 +155,8 @@
       m-cli
       cmake
       libtool
+      nodejs          # moved from Homebrew
+      _1password-cli  # moved from Homebrew cask
     ];
 
     # Config Files
