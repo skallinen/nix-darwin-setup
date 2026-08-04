@@ -26,6 +26,7 @@
     clojure
     clj-kondo
     clojure-lsp
+    babashka     # runtime for clojure-mcp-light bbin scripts
 
     # JS/TS Development Toolchain
     nodePackages.typescript
@@ -266,6 +267,7 @@
 
   home.sessionPath = [
     "$HOME/.dotnet/tools"
+    "$HOME/.local/bin"   # bbin installs clojure-mcp-light tools here
   ];
 
   home.stateVersion = "22.11";
