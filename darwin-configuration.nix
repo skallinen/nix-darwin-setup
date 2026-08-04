@@ -46,18 +46,47 @@
   # --- Homebrew Configuration ---
   homebrew = {
     enable = true;
-    onActivation = { 
-      autoUpdate = true; 
-      upgrade = true; 
+    onActivation = {
+      autoUpdate = true;
+      upgrade = true;
+      # `cleanup = "zap"` is CURRENTLY A NO-OP that also makes every
+      # `darwin-rebuild switch` exit 1 (observed 2026-08-04). nix-darwin
+      # implements it by passing `--cleanup` to `brew bundle install`, and
+      # current Homebrew answers:
+      #   Warning: Calling the `--cleanup` switch is deprecated! There is no
+      #   replacement.
+      # It then only PRINTS "Would uninstall …" and returns non-zero. Nothing is
+      # removed, and the non-zero return fails the activation script even though
+      # the bundle itself reported "complete!".
+      # So undeclared packages must be removed by hand for now:
+      #   brew bundle cleanup --file=<the generated Brewfile> --force
+      # (and see the tap-trust trap above — that command lies about success when
+      # an untrusted tap aborts it).
       cleanup = "zap";
     };
 
+    # TRAP (hit 2026-08-04): current Homebrew refuses to load formulae/casks
+    # from untrusted third-party taps, which makes `brew bundle` — and therefore
+    # the whole `darwin-rebuild switch` activation — fail. Trust must be granted
+    # once per machine, OUTSIDE nix:
+    #
+    #   brew trust --taps wedow/tools d12frosted/emacs-plus nikitabobko/tap
+    #
+    # Two things that cost real time:
+    #   1. `brew trust` REWRITES ~/.homebrew/trust.json wholesale — it does not
+    #      append. Trusting one tap silently un-trusts every other. Always pass
+    #      every tap in a SINGLE invocation.
+    #   2. `brew bundle cleanup --force` prints "Uninstalled N casks" and exits 0
+    #      even when an untrusted tap made it abort before removing anything.
+    #      The summary line is not evidence; check /opt/homebrew/Caskroom.
     taps = [
       # Removed: anomalyco/tap (opencode is in homebrew-core now)
       # Removed: railwaycat/emacsmacport (using emacs-plus, not emacs-mac)
       # Removed: brewsci/homebrew-science (nothing installed from it)
       # Removed: koekeishiya/formulae (using aerospace, not yabai/skhd)
-      "pharo-project/pharo"
+      # Commented out 2026-08-04: only fed the pharo-launcher cask, which is
+      # no longer installed (manual uninstall to reclaim disk).
+      # "pharo-project/pharo"
       "nikitabobko/tap"
       "d12frosted/emacs-plus"
       "wedow/tools"
@@ -73,35 +102,72 @@
     ];
 
     # GUI Applications
+    #
+    # 2026-08-04 disk-space audit: the operator manually uninstalled a number of
+    # apps to reclaim space. Everything commented out below was still DECLARED
+    # here but no longer present on disk — with `onActivation.cleanup = "zap"`
+    # and `upgrade = true`, the next `darwin-rebuild switch` would have silently
+    # reinstalled all of them (~several GB). Each line is kept, not deleted, so
+    # re-enabling is a one-character edit.
+    #
+    # Verified by artifact, not by `brew list` — brew's registry still lists a
+    # cask after the .app is dragged to the Trash, so the registry lies here.
     casks = [
       # mouse
       "logi-options+"
       # Browsers
-      "firefox" "google-chrome"
-      
+      # "firefox"            # uninstalled 2026-08-04
+      "google-chrome"
+
       # Communication
-      "discord" "signal" "slack" "telegram" "zoom"
-      
+      # "discord"            # uninstalled 2026-08-04
+      # "signal"             # uninstalled 2026-08-04
+      # "slack"              # uninstalled 2026-08-04
+      "telegram"
+      # "zoom"               # uninstalled 2026-08-04 (pkg receipt remains, app gone)
+
       # Creative & Media
-      "audacity" "calibre" "inkscape" "krita" "meshlab" "obs" "vlc"
-      
+      # "audacity"           # uninstalled 2026-08-04
+      # "calibre"            # uninstalled 2026-08-04 (~/Calibre Library kept)
+      # "inkscape"           # uninstalled 2026-08-04
+      # "krita"              # uninstalled 2026-08-04
+      # "meshlab"            # uninstalled 2026-08-04
+      "obs"
+      # "vlc"                # uninstalled 2026-08-04 (mpv brew formula still present)
+
       # Cloud & Sync
-      "dropbox" "google-drive" "utm" "aws-vpn-client"
-      
+      "dropbox" "google-drive" "aws-vpn-client"
+      # "utm"                # uninstalled 2026-08-04 — NOTE: its 33 GB NixOS VM
+      #                      #   still sits in ~/Library/Containers/com.utmapp.UTM
+
       # Developer & Utilities
       # 1password-cli now provided by Nix (pkgs._1password-cli)
-      "mongodb-compass" "pharo-launcher"
+      # "mongodb-compass"    # uninstalled 2026-08-04
+      # "pharo-launcher"     # uninstalled 2026-08-04 (tap also disabled above)
       "aerospace" "blackhole-2ch" "caffeine" "docker-desktop"
       "karabiner-elements" "keycastr" "antigravity" "copilot-cli"
       { name = "nordlayer"; greedy = true; }
-      "pdf-pals" "spaceid" "opencode-desktop" "codex" "vnc-viewer"
-      
+      # "pdf-pals"           # uninstalled 2026-08-04
+      "spaceid" "opencode-desktop" "codex"
+      # "vnc-viewer"         # uninstalled 2026-08-04
+
       # Security & Misc
-      "1password" "claude" "opencpn" "supercollider" "displaylink"
+      "1password" "claude" "displaylink"
+      # "opencpn"            # uninstalled 2026-08-04 (pkg receipt remains, app gone)
+      # "supercollider"      # uninstalled 2026-08-04
     ];
 
     masApps = {
       # GarageBand removed — App Store download fails and blocks brew bundle
+      #
+      # Xcode is deliberately NOT declared here. It is already installed at
+      # /Applications/Xcode.app (4.7 GB) via the App Store. Declaring it would
+      # make every activation depend on a `mas` download that needs an Apple ID
+      # — exactly the failure mode that forced GarageBand out above.
+      # Remaining manual step (needs sudo, so not automated):
+      #   sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+      #   sudo xcodebuild -runFirstLaunch
+      # `xcode-select -p` currently still points at the nix apple-sdk.
     };
 
     extraConfig = ''
