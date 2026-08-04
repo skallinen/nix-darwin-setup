@@ -10,6 +10,7 @@
     diff-so-fancy
     fd
     fzf
+    gh           # GitHub CLI — auth lives in the login keyring, not here
     gnupg
     jq
     ripgrep
