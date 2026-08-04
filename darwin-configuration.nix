@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, config, ... }:
 
 {
   networking.hostName = "Samis-MacBook-Air";
@@ -43,6 +43,35 @@
     fi
   '';
 
+  # --- Homebrew Tap Trust (runs BEFORE `brew bundle`) ---
+  #
+  # Homebrew refuses to LOAD formulae/casks from untrusted third-party taps, and
+  # that is not merely a "cannot install" failure. `brew bundle cleanup` resolves
+  # an unreadable formula to ZERO dependencies and then uninstalls those
+  # dependencies as orphans. That is exactly how emacs-plus@30 lost all 19 of its
+  # libraries on 2026-08-04 and began dying at launch with
+  #   dyld: Library not loaded: /opt/homebrew/opt/librsvg/lib/librsvg-2.2.dylib
+  #
+  # `brew trust` REWRITES ~/.homebrew/trust.json wholesale instead of appending,
+  # so granting trust by hand un-trusts every tap not named in that one command.
+  # Deriving the list from `homebrew.taps` and passing it in a SINGLE invocation
+  # makes that footgun structurally impossible: the trusted set cannot drift from
+  # the declared set, and a fresh machine is correct on its first rebuild.
+  #
+  # preActivation is deliberate. postActivation runs AFTER the bundle step, which
+  # is far too late — the damage happens during the bundle.
+  system.activationScripts.preActivation.text = lib.optionalString (config.homebrew.taps != [ ]) ''
+    if [ -x /opt/homebrew/bin/brew ]; then
+      echo "trusting homebrew taps..." >&2
+      if ! sudo --user=${config.system.primaryUser} --set-home \
+             /opt/homebrew/bin/brew trust \
+             --taps ${lib.concatMapStringsSep " " (t: lib.escapeShellArg t.name) config.homebrew.taps}; then
+        echo -e "\e[1;31mwarning: 'brew trust' failed. Third-party taps may be unreadable, which lets" >&2
+        echo -e "'brew bundle cleanup' silently uninstall their dependencies (2026-08-04 emacs-plus incident).\e[0m" >&2
+      fi
+    fi
+  '';
+
   # --- Homebrew Configuration ---
   homebrew = {
     enable = true;
@@ -62,6 +91,15 @@
       #   brew bundle cleanup --file=<the generated Brewfile> --force
       # (and see the tap-trust trap above — that command lies about success when
       # an untrusted tap aborts it).
+      #
+      # CORRECTION (2026-08-04, later the same day): the "exit 1" half of the
+      # note above no longer reproduces. With tap trust granted in preActivation,
+      # two consecutive `darwin-rebuild switch` runs exit 0. The deprecation
+      # warning is still printed, but it is only a warning now — activation is
+      # not failed by it. The earlier exit 1 was most likely the untrusted tap
+      # aborting the bundle, not `--cleanup` itself.
+      # Still verified true: nothing is actually removed, so undeclared packages
+      # must be pruned by hand.
       cleanup = "zap";
     };
 
@@ -98,7 +136,41 @@
       "mpv"                   # Nix build fails versionCheckPhase on macOS
       "wedow/tools/ticket"    # Custom tap, no Nix package
       "librtlsdr"             # SDR radio library
-      "jpeg"                  # emacs-plus dependency
+
+      # emacs-plus@30 runtime libraries.
+      #
+      # WHY EVERY ONE OF THESE IS LISTED (incident 2026-08-04): emacs-plus@30 is
+      # declared in `extraConfig` below, from the third-party d12frosted tap. When
+      # `brew bundle cleanup --force` ran, Homebrew could not read that tap's
+      # formula (see the tap-trust trap above), so it resolved emacs-plus to ZERO
+      # dependencies and uninstalled all 19 of them. Emacs then died at launch with
+      #   dyld: Library not loaded: /opt/homebrew/opt/librsvg/lib/librsvg-2.2.dylib
+      # The binary hard-links these absolute paths (`otool -L …/MacOS/Emacs`), so a
+      # missing one is an instant SIGABRT, not a degraded feature.
+      #
+      # Declaring them here makes them first-class Brewfile entries, so cleanup
+      # protects them (and their transitive deps: pango, nettle, unbound, …) even
+      # while the tap stays unreadable. Do not "tidy" these away as redundant —
+      # they are load-bearing precisely because the tap's dep list is untrustworthy.
+      # Re-check with: otool -L /opt/homebrew/opt/emacs-plus@30/Emacs.app/Contents/MacOS/Emacs
+      "librsvg"               # SVG rendering — the library that broke 2026-08-04
+      "gdk-pixbuf"            # image loading
+      "gnutls"                # TLS for network.el / package.el
+      "gmp"                   # bignum arithmetic
+      "libgccjit"             # native compilation (comp.el)
+      "tree-sitter@0.25"      # treesit.el — the binary links libtree-sitter.0.25.dylib
+                              #   by soname, so the unversioned formula will NOT do
+      "cairo"                 # rendering
+      "glib"                  # gio/gobject/glib
+      "gettext"               # libintl
+      "little-cms2"           # color management
+      "zlib"                  # keg-only, but linked by absolute path
+      "sqlite"                # sqlite.el
+      "jpeg"                  # image format support
+      "libtiff"
+      "libpng"
+      "giflib"
+      "webp"
     ];
 
     # GUI Applications
