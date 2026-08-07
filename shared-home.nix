@@ -46,9 +46,20 @@
     pandoc
     mu
     isync
-  ] ++ [
-    # AI Tools (hyphenated names can't go in the with-block above)
-    pkgs."claude-code"
+
+    # AI Tools
+    # claude-code is deliberately NOT here. It is installed as an npm global
+    # under Homebrew's node prefix (/opt/homebrew/bin/claude ->
+    # ../lib/node_modules/@anthropic-ai/claude-code), which is what its own
+    # auto-updater maintains. nixpkgs cannot keep up: this list pinned 2.1.81
+    # while the CLI had auto-updated itself to 2.1.224, and because a
+    # `nix develop` shell puts /etc/profiles/per-user/<user>/bin ahead of
+    # /opt/homebrew/bin, entering any project dev shell silently downgraded
+    # `claude` by four months — against a ~/.claude.json already migrated by
+    # the new version. Removed 2026-08-07.
+    #
+    # Note this is NOT the "claude" Homebrew cask in darwin-configuration.nix;
+    # that is the desktop app (/Applications/Claude.app) and ships no CLI.
   ];
 
   # --- Shared Program Configurations ---
