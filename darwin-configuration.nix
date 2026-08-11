@@ -209,12 +209,6 @@
 
       # Cloud & Sync
       "dropbox" "google-drive" "aws-vpn-client"
-      # tailscale-app: mesh VPN to the assistant VPS (hel1). The cask, not pkgs.tailscale
-      # — nixpkgs ships only the CLI+daemon and nix-darwin has no services.tailscale
-      # module for macOS, so the nix route would mean hand-rolling a launchd job.
-      # Lets the server close port 22 entirely: everything it does is outbound, so with
-      # Tailscale SSH it needs no inbound port at all.
-      "tailscale-app"
       # "utm"                # uninstalled 2026-08-04 — NOTE: its 33 GB NixOS VM
       #                      #   still sits in ~/Library/Containers/com.utmapp.UTM
 
