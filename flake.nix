@@ -32,7 +32,7 @@
   in {
     # --- macOS Configurations ---
     darwinConfigurations = {
-      "Samis-MacBook-Air" = mkMac "Samis-MacBook-Air" ./darwin-configuration.nix;
+      "Samis-MacBook-Pro" = mkMac "Samis-MacBook-Pro" ./darwin-configuration.nix;
       
       "Gmtk-MacBook-Pro" = mkMac "Gmtk-MacBook-Pro" ({ lib, ... }: {
         imports = [ ./darwin-configuration.nix ];

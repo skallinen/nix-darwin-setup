@@ -3,7 +3,7 @@
 Public flake for reproducing my macOS dev setup (Apple Silicon).
 
 Outputs:
-- Samis-MacBook-Air
+- Samis-MacBook-Pro
 - Gmtk-MacBook-Pro
 
 What’s included
@@ -77,7 +77,7 @@ killall SystemUIServer 2>/dev/null || true
 
 ## Existing Mac
 
-Apply current host config (depends on your machine's hostname, e.g., `Samis-MacBook-Air` or `Gmtk-MacBook-Pro`):
+Apply current host config (depends on your machine's hostname, e.g., `Samis-MacBook-Pro` or `Gmtk-MacBook-Pro`):
 - If inside the `nix-config` directory: `darwin-rebuild switch --flake .#<Host>`
 - From anywhere else: `darwin-rebuild switch --flake ~/nix-config#<Host>`
 *Tip: If you're unsure which `<Host>` to use, you can check your command history for past builds: `history | grep darwin-rebuild` (or `grep darwin-rebuild ~/.zsh_history`).*
