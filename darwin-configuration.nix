@@ -105,7 +105,28 @@
       # aborting the bundle, not `--cleanup` itself.
       # Still verified true: nothing is actually removed, so undeclared packages
       # must be pruned by hand.
-      cleanup = "zap";
+      #
+      # RE-CORRECTION (2026-09-01): the correction above is WRONG. `exit 1` does
+      # reproduce, and tap trust is not the cause — trust.json listed all four
+      # taps and preActivation logged "trusting homebrew taps..." successfully on
+      # the failing run. Three consecutive `darwin-rebuild switch` runs exited 1,
+      # every one of them dying at "Homebrew bundle..." after printing
+      # "Would uninstall formulae:" / "Would uninstall casks:" and nothing else.
+      #
+      # That matters more than a cosmetic exit code, because activation runs under
+      # `set -e`: the bundle step is ~line 200 of the activate script and
+      # `ln -sfn … /run/current-system` is ~line 2563, so a non-zero bundle
+      # ABANDONS the last 2300 lines. The system profile advances to the new
+      # generation while /run/current-system still points at the old one, and the
+      # rename that prompted this went into generation 59 without ever becoming
+      # the running system. Nothing announces that; `darwin-rebuild` prints
+      # homebrew's output last, so the failure looks like a homebrew warning.
+      #
+      # So: "none". It gives up nothing — "zap" removed nothing anyway, by the
+      # note above — and it buys back an activation that completes. Pruning
+      # undeclared packages stays a hand job, as it already was:
+      #   brew bundle cleanup --file=<the generated Brewfile> --force
+      cleanup = "none";
     };
 
     # TRAP (hit 2026-08-04): current Homebrew refuses to load formulae/casks
