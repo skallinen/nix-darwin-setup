@@ -46,6 +46,34 @@
     if /usr/sbin/systemsetup -getremotelogin | grep -q "Off"; then
       sudo /usr/sbin/systemsetup -f -setremotelogin on
     fi
+
+    # ...and let the primary user actually LOG IN over it without being an admin.
+    #
+    # Turning Remote Login on is only half the job, which cost an afternoon on
+    # 2026-09-01. macOS gates sshd behind the group `com.apple.access_ssh`, and
+    # out of the box that group contains ONE nested group — admin (GID 80) — and
+    # no direct users. So sshd listens, the port answers, the banner is real, and
+    # every login by a standard user is still refused. The failure looks like an
+    # auth problem (it is reported as a publickey/password rejection), not like a
+    # policy one, so it sends you to keys and sshd_config, where nothing is wrong.
+    #
+    # Granting the user directly means SSH survives dropping back to a standard
+    # account, which is the point: admin should be something toggled on for a
+    # rebuild, not a standing requirement for getting a shell.
+    #
+    # `dseditgroup -o edit -a` is idempotent — re-adding an existing member is a
+    # no-op — so this is safe on every activation. It writes to the LOCAL
+    # directory, which is why it must live here: nothing in the nix store records
+    # it, so a fresh machine would silently be admin-only again.
+    if ! /usr/bin/dsmemberutil checkmembership \
+           -U ${config.system.primaryUser} -G com.apple.access_ssh 2>/dev/null \
+         | grep -q "is a member"; then
+      echo "granting ${config.system.primaryUser} SSH access (com.apple.access_ssh)..." >&2
+      sudo /usr/sbin/dseditgroup -o edit -a ${config.system.primaryUser} \
+        -t user com.apple.access_ssh || \
+        echo -e "\e[1;31mwarning: could not add ${config.system.primaryUser} to com.apple.access_ssh;" \
+                "SSH will require admin group membership.\e[0m" >&2
+    fi
   '';
 
   # --- Homebrew Tap Trust (runs BEFORE `brew bundle`) ---
